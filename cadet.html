@@ -6,7 +6,6 @@
   <title>Cadet & Corporal Setup - Drosera</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* your existing styles... plus copy button style */
     body { margin:0; height:100vh; display:flex; align-items:center; justify-content:center; overflow:hidden; background:#0d0d0d; color:#fff; font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; position:relative; }
     canvas { position:absolute; top:0; left:0; width:100%; height:100%; z-index:0; }
     .step-card { background: rgba(0,0,0,0.85); padding:30px; border-radius:20px; text-align:left; z-index:1; max-width:900px; width:95%; }
@@ -41,7 +40,7 @@
   </div>
 
   <script>
-    // background particle animation (same as homepage)
+    // background particle animation
     const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d');
     function resetCanvas(){ canvas.width = innerWidth; canvas.height = innerHeight; }
     window.addEventListener('resize', ()=>{ resetCanvas(); initParticles(); });
@@ -83,11 +82,9 @@
       document.getElementById('stepDesc').innerText = (s.notes||[]).join(' • ') || '';
       document.getElementById('stepCounter').innerText = `${i+1}/${guide.steps.length}`;
 
-      // build commands area (commands array or substeps)
       const area = document.getElementById('commandsArea'); area.innerHTML='';
       const commands = s.commands || (s.substeps ? s.substeps.flatMap(ss => ss.commands || []) : []);
       if(commands.length){
-        // assemble a single code block
         const codeId = 'codeBlock';
         const wrapper = document.createElement('div');
         wrapper.style.position='relative';
@@ -114,7 +111,6 @@
       }
     }
 
-    // copy helper
     async function copyCode(id){
       const text = document.getElementById(id).innerText;
       try{ await navigator.clipboard.writeText(text); flashTemporary('Copied to clipboard'); } catch(e){ alert('Copy failed'); }
@@ -126,47 +122,77 @@
       setTimeout(()=>el.remove(),1500);
     }
 
-    // call API for either "proceed" (no error) or "submit error"
-    async function askAI({ step, username, error }) {
-      // Show loading
+    // call API for either "proceed" (render) or "submit error" (troubleshoot)
+    async function askAI({ step, username, error, mode }) {
       const aiEl = document.getElementById('aiAnswer');
-      aiEl.style.display='block'; aiEl.innerText = 'AI is thinking…';
+      aiEl.style.display='block';
+      aiEl.innerText = 'AI is thinking…';
+
       try {
         const r = await fetch('/api/ask', {
           method:'POST',
           headers:{ 'Content-Type':'application/json' },
-          body: JSON.stringify({ username, step, error })
+          body: JSON.stringify({ mode, username, step, error })
         });
-        const j = await r.json();
-        if (j.error) aiEl.innerText = 'Error: ' + (j.error || JSON.stringify(j));
-        else aiEl.innerText = j.answer || 'No answer';
+
+        const txt = await r.text();
+        if (!r.ok) {
+          console.error(txt);
+          aiEl.innerText = 'Server error: ' + txt;
+          return;
+        }
+
+        let j;
+        try { j = JSON.parse(txt); }
+        catch(e) {
+          console.error('Invalid JSON from API:', txt);
+          aiEl.innerText = 'Invalid response from AI';
+          return;
+        }
+
+        if (j.type === "render") {
+          aiEl.innerText = `🔹 ${j.step.title}\n\n${j.step.description || ''}`;
+          j.step.substeps?.forEach(ss => {
+            aiEl.innerText += `\n\n👉 ${ss.title}\n${(ss.commands||[]).join('\n')}`;
+          });
+        }
+        else if (j.type === "troubleshoot") {
+          aiEl.innerText =
+            `⚠️ Diagnosis: ${j.diagnosis}\n\n` +
+            `Explanation: ${j.explanation}\n\n` +
+            `Suggested commands:\n${(j.suggested_commands||[]).join('\n')}\n\n` +
+            `Confidence: ${j.confidence}` +
+            (j.cannot_fix ? "\n\n❌ This is outside the guide’s scope." : "\n\n✅ Ready to retry this step?");
+        }
+        else {
+          aiEl.innerText = 'Unexpected response: ' + JSON.stringify(j);
+        }
+
       } catch (e) {
         aiEl.innerText = 'Request failed: ' + e.message;
       }
     }
 
-    // proceed button: ask AI to display the step content (strictly based on JSON)
+    // proceed button
     document.getElementById('btnProceed').addEventListener('click', async ()=>{
       const username = localStorage.getItem('discordUsername') || 'anonymous';
       const step = guide.steps[stepIdx];
-      // Ask AI to show exact commands/notes for this step (AI will only echo step info; mainly useful for formatting or additional brief checks)
-      await askAI({ step, username, error: null });
-      // mark step completed locally and advance
+      await askAI({ mode:"render", step, username });
       stepIdx = Math.min(stepIdx + 1, guide.steps.length);
       localStorage.setItem('drosera_step', String(stepIdx));
-      setTimeout(()=>renderStep(stepIdx), 700); // allow user to read AI answer first
+      setTimeout(()=>renderStep(stepIdx), 700);
     });
 
-    // submit error: send error text + step to AI to troubleshoot
+    // submit error
     document.getElementById('btnSubmitError').addEventListener('click', async ()=>{
       const err = document.getElementById('errorBox').value.trim();
       if(!err) return alert('Please paste the error output first.');
       const username = localStorage.getItem('discordUsername') || 'anonymous';
       const step = guide.steps[stepIdx];
-      await askAI({ step, username, error: err });
+      await askAI({ mode:"troubleshoot", step, username, error: err });
     });
 
-    // quick username check: if missing, prompt using browser prompt (or use the earlier selection page)
+    // prompt username if missing
     if(!localStorage.getItem('discordUsername')){
       const u = prompt('Enter your Discord username (used for progress):');
       if(u) localStorage.setItem('discordUsername', u);

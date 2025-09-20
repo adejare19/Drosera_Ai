@@ -1,4 +1,3 @@
-// api/ping.js
 export default async function handler(req, res) {
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
@@ -13,7 +12,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        messages: [{ role: "user", content: "Say hello" }],
+        messages: [{ role: "user", content: "Yes, its the Weekend" }],
       }),
     });
 
