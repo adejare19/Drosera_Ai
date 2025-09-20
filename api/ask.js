@@ -71,7 +71,7 @@ If outside scope:
           { role: 'user', content: userMessage },
         ],
         max_tokens: 1000,
-        temperature: 0.0,
+        temperature: 0.3,
       }),
     });
 
