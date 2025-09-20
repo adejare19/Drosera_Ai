@@ -1,14 +1,12 @@
-
 import fetch from 'node-fetch';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { username, step, error } = req.body || {};
+  const { username, step, error, mode } = req.body || {};
   if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
 
-  
-const systemPrompt = `
+  const systemPrompt = `
 You are a Drosera SystemD setup assistant whose sole source of truth is the JSON "guide" object the user supplies.
 
 ***Hard rules (must follow exactly):***
@@ -20,7 +18,6 @@ You are a Drosera SystemD setup assistant whose sole source of truth is the JSON
 ***Output formats***
 
 A) Render Mode (mode: "render"):
-Return exactly this JSON object (no surrounding text):
 {
   "type": "render",
   "step": {
@@ -34,12 +31,8 @@ Return exactly this JSON object (no surrounding text):
     ]
   }
 }
-- If the step object has \`substeps\`, preserve them in \`substeps\` exactly as in the supplied JSON.
-- DO NOT combine substep commands into the parent \`commands\` array.
-- Do not modify or reformat any command strings — return them verbatim.
 
 B) Troubleshoot Mode (mode: "troubleshoot"):
-Return exactly this JSON object (no surrounding text):
 {
   "type": "troubleshoot",
   "diagnosis": "<short one-line diagnosis or empty string>",
@@ -49,10 +42,7 @@ Return exactly this JSON object (no surrounding text):
   "cannot_fix": false
 }
 
-- suggested_commands should be real Linux debugging or fix commands (e.g. "sudo apt update && sudo apt install x", "which drosera-operator", "sudo systemctl status drosera", "journalctl -u drosera.service -n 200 --no-pager").
-- Only include commands relevant to the current step. Do NOT invent unrelated steps.
-- Wrap commands as plain strings; do not output markdown formatting.
-- If the error is outside the scope of the step or the guide, set "cannot_fix": true and return:
+If outside scope:
 {
   "type":"troubleshoot",
   "diagnosis": "",
@@ -61,19 +51,11 @@ Return exactly this JSON object (no surrounding text):
   "confidence": "low",
   "cannot_fix": true
 }
-
-***Behavior***
-- If user sends { mode: "render", step: <step-object> }, follow Render Mode.
-- If user sends { mode: "troubleshoot", step: <step-object>, error: "<raw terminal output>" }, follow Troubleshoot Mode.
-- After returning a troubleshoot response, always end with the question "✅ Ready to retry this step?" — but only in the UI layer, never inside the JSON.
-- Temperature should be low (0.0) in the API call; be deterministic.
-- If any ambiguity exists, prefer returning "cannot_fix": true rather than guessing.
 `;
 
-
   const userMessage = error
-    ? `Username: ${username}\nError while running step (id=${step?.id} title="${step?.title}"):\n\n${error}\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`
-    : `Username: ${username}\nRequest: show the exact commands & notes for step (id=${step?.id} title="${step?.title}")\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`;
+    ? `Mode: troubleshoot\nUsername: ${username}\nError while running step (id=${step?.id} title="${step?.title}"):\n\n${error}\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`
+    : `Mode: render\nUsername: ${username}\nRequest: show the exact commands & notes for step (id=${step?.id} title="${step?.title}")\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`;
 
   try {
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -89,9 +71,8 @@ Return exactly this JSON object (no surrounding text):
           { role: 'user', content: userMessage },
         ],
         max_tokens: 1000,
-        temperature: 0.0
+        temperature: 0.0,
       }),
-
     });
 
     if (!openaiRes.ok) {
@@ -101,10 +82,21 @@ Return exactly this JSON object (no surrounding text):
     }
 
     const j = await openaiRes.json();
-    const answer = j.choices?.[0]?.message?.content ?? '';
-    return res.status(200).json({ answer });
+    const raw = j.choices?.[0]?.message?.content ?? '';
+
+    // Try to parse AI response as JSON
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error('Invalid JSON from AI:', raw);
+      return res.status(500).json({ error: 'AI did not return valid JSON', raw });
+    }
+
+    return res.status(200).json(parsed);
+
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ error: 'Server error', details: err.message });
   }
 }
