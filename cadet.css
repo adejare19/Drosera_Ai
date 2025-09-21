@@ -124,7 +124,7 @@ button {
     /* clickable */
     position: relative;
     /* stays above overlays */
-    z-index: 2;
+    z-index: 1;
 }
 
 .ai-response {
@@ -165,15 +165,28 @@ button {
 
 /* 🔹 Mobile responsiveness */
 @media (max-width: 768px) {
+    body {
+        flex-direction: column;   /* stack content vertically */
+        align-items: stretch;     /* full width */
+        justify-content: flex-start; 
+        height: auto;             /* let body grow naturally */
+        padding: 20px 10px;       /* some breathing room */
+    }
+
     .step-container {
-        flex-direction: column;
-        /* stack vertically */
+        flex-direction: column;   /* stack cards */
+        width: 100%;              /* take full width */
+        height: auto;             /* auto height */
+        gap: 20px;
     }
 
     .guide-section,
     .troubleshoot-section {
         width: 100%;
-        /* full width */
         min-width: unset;
+    }
+
+    textarea {
+        width: 100%; /* expand to full width */
     }
 }
