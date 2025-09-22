@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drosera PoC Generator</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #0d0d0d;
+      color: #fff;
+      font-family: Arial, sans-serif;
+    }
+
+    #bgCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+
+    .step-card {
+      z-index: 1;
+      background: rgba(24, 24, 24, 0.85);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      position: relative;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .true {
+      background: #ff6600;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 30px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    .false {
+      background: #8e44ad;
+      color: #fff;
+      font-weight: bold;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 30px;
+      transition: all 0.3s ease-in-out;
+    }
+
+    pre {
+      text-align: left;
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="bgCanvas"></canvas>
+
+  <div class="d-flex align-items-center justify-content-center vh-100">
+    <div class="step-card">
+
+      <!-- Step 1 -->
+      <div id="step-start" class="text-center">
+        <h2 class="mb-3">Drosera PoC Generator</h2>
+        <p class="text-light">Do you already have a PoC idea, or would you like AI to suggest one?</p>
+        <div class="d-flex justify-content-center gap-3">
+          <button class="btn false" onclick="showStep('idea')">I have an idea</button>
+          <button class="btn true" onclick="showStep('generate')">Suggest Ideas</button>
+        </div>
+      </div>
+
+      <!-- Step 2a: User Idea -->
+      <div id="step-idea" class="d-none">
+        <h4 class="mb-3">Enter your PoC Idea</h4>
+        <textarea id="userIdea" class="form-control mb-3" rows="4"
+          placeholder="Describe your PoC idea..."></textarea>
+        <button class="btn w-100" style="background: #ff6600;" onclick="generateRepo()">Generate Repo</button>
+      </div>
+
+      <!-- Step 2b: AI Ideas -->
+      <div id="step-generate" class="d-none">
+        <h4 class="mb-3">AI-Generated Ideas</h4>
+        <div id="idea-options" class="d-flex flex-column mb-3 text-light"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    async function showStep(step) {
+      document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
+      document.getElementById('step-' + step).classList.remove('d-none');
+
+      if (step === 'generate') {
+        await fetchIdeas();
+      }
+    }
+
+    async function fetchIdeas() {
+      const container = document.getElementById('idea-options');
+      container.innerHTML = "Fetching ideas from Bjorn...";
+
+      try {
+        const res = await fetch('/api/generateIdeas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: `Generate 3 unique Drosera trap PoC ideas (simple but functional, each based on a DeFi or dApp protocol).`
+          })
+        });
+
+        const data = await res.json();
+        const ideas = data.ideas || [];
+
+        container.innerHTML = "";
+
+        if (!ideas.length) {
+          container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
+          return;
+        }
+
+        ideas.forEach((idea) => {
+          const btn = document.createElement("button");
+          btn.className = "btn true mb-2";
+          btn.innerText = idea;
+          btn.onclick = () => generateRepo(idea);
+          container.appendChild(btn);
+        });
+
+      } catch (err) {
+        container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
+        console.error(err);
+      }
+    }
+
+    function generateRepo(idea) {
+      // If no idea passed, use textarea input
+      if (!idea) {
+        idea = document.getElementById('userIdea').value.trim();
+      }
+
+      if (!idea) {
+        alert("Please enter or select an idea first!");
+        return;
+      }
+
+      window.location.href = `setup.html?idea=${encodeURIComponent(idea)}`;
+    }
+
+    // Background Canvas Animation
+    const canvas = document.getElementById('bgCanvas'),
+      ctx = canvas.getContext('2d');
+    function resetCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
+    window.addEventListener('resize', () => { resetCanvas(); initParticles(); });
+    resetCanvas();
+
+    let particles = [];
+    class Particle {
+      constructor(x, y, s, sx, sy) { Object.assign(this, { x, y, size: s, sx, sy }); }
+      update() { this.x += this.sx; this.y += this.sy; if (this.x < 0 || this.x > canvas.width) this.sx *= -1; if (this.y < 0 || this.y > canvas.height) this.sy *= -1; }
+      draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,102,0,0.7)'; ctx.fill(); }
+    }
+    function initParticles() {
+      particles = [];
+      for (let i = 0; i < 50; i++) {
+        particles.push(new Particle(
+          Math.random() * canvas.width,
+          Math.random() * canvas.height,
+          Math.random() * 3 + 2,
+          (Math.random() - 0.5) * 2,
+          (Math.random() - 0.5) * 2
+        ));
+      }
+    }
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => { p.update(); p.draw(); });
+      for (let a = 0; a < particles.length; a++) {
+        for (let b = a; b < particles.length; b++) {
+          const dx = particles[a].x - particles[b].x,
+            dy = particles[a].y - particles[b].y,
+            d = Math.sqrt(dx * dx + dy * dy);
+          if (d < 120) {
+            ctx.beginPath();
+            ctx.strokeStyle = 'rgba(255,102,0,0.12)';
+            ctx.moveTo(particles[a].x, particles[a].y);
+            ctx.lineTo(particles[b].x, particles[b].y);
+            ctx.stroke();
+          }
+        }
+      }
+      requestAnimationFrame(animate);
+    }
+    initParticles(); animate();
+  </script>
+</body>
+</html>

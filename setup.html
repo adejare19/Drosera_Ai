@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Drosera PoC Guide — File Setup (Wizard)</title>
+
+    <!-- Bootstrap (for layout/buttons) -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- your external CSS -->
+    <link rel="stylesheet" href="captain.css">
+
+    <style>
+        /* small helper so copy buttons look OK if style.css missing */
+        .cmd-pre {
+            position: relative;
+            padding-right: 110px;
+        }
+
+        .copy-btn-inline {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 2;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .file-code-block {
+            margin-top: 12px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            padding: 12px;
+            border: 1px solid #333;
+        }
+
+        .file-code-title {
+            color: #ff6600;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .wizard-controls {
+            margin-top: 14px;
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Background canvas -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Main card (matches your .step-card style) -->
+    <div class="step-card">
+        <button class="btn-back" title="Back" onclick="goToStep(1)">&larr;</button>
+        <h2 class="top-2">Drosera AI PoC Guide</h2>
+        <p class="small-muted">Step-by-step file setup (terminal-friendly). Follow each step and click Next to proceed.
+        </p>
+
+        <div class="step-container">
+            <!-- Left: guide / steps (WIZARD) -->
+            <div class="guide-section" style="position:relative;">
+                <!-- Step 1 -->
+                <div class="step active" data-step="1" id="step-1">
+                    <h4>1) Create project folder</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-1" class="cmd-pre bg-dark text-success p-3 rounded">mkdir my-poc-project
+cd my-poc-project</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-1">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <div></div>
+                        <div>
+                            <button class="btn btn-next" onclick="nextStep()">Next →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2 -->
+                <div class="step" data-step="2" id="step-2">
+                    <h4>2) Initialize git (optional) & Foundry</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-2" class="cmd-pre bg-dark text-success p-3 rounded">git init
+forge init
+forge install drosera-network/drosera-contracts</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-2">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                        <button class="btn btn-next" onclick="nextStep()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Step 3 -->
+                <div class="step" data-step="3" id="step-3">
+                    <h4>3) Create source files (terminal / nano)</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-3" class="cmd-pre bg-dark text-success p-3 rounded"># create src folder and open nano to create Trap.sol
+mkdir -p src
+nano src/Trap.sol
+# paste contract content, save (Ctrl+O), exit (Ctrl+X)
+
+# then create response contract
+nano src/TrapResponse.sol
+# paste response contract, save & exit</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-3">Copy</button>
+                    </div>
+
+                    <!-- CODE to paste into src/Trap.sol -->
+                    <div class="file-code-block" id="code-trap">
+                        <div class="file-code-title">Paste into <code>src/Trap.sol</code></div>
+                        <pre id="code-trap-pre" class="bg-dark text-success p-3 rounded">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+
+contract Trap is ITrap {
+    // No constructor args — configurable via setter functions
+    address public responseContract;
+
+    function setResponseContract(address _addr) external {
+        responseContract = _addr;
+    }
+
+    // Drosera will call this; inspect forwarded calldata and decide if it should respond
+    function shouldRespond(bytes calldata) external view override returns (bool) {
+        // Minimal PoC: never respond by default — replace with your detection logic
+        return false;
+    }
+}</pre>
+                        <button class="btn copy-btn-inline" data-copy="#code-trap-pre"
+                            style="right:10px;top:10px;">Copy</button>
+                    </div>
+
+                    <!-- CODE to paste into src/TrapResponse.sol -->
+                    <div class="file-code-block" id="code-response">
+                        <div class="file-code-title">Paste into <code>src/TrapResponse.sol</code></div>
+                        <pre id="code-response-pre" class="bg-dark text-success p-3 rounded">// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+contract TrapResponse {
+    bool public lastIncident;
+    uint256 public lastTimestamp;
+    event ResponseLogged(bool incident, uint256 timestamp, address reporter);
+
+    // Match drosera.toml response_function: respondWith<NAME>(bool,uint256)
+    function respondWithPoC(bool incident, uint256 timestamp) external {
+        lastIncident = incident;
+        lastTimestamp = timestamp;
+        emit ResponseLogged(incident, timestamp, msg.sender);
+    }
+}</pre>
+                        <button class="btn copy-btn-inline" data-copy="#code-response-pre"
+                            style="right:10px;top:10px;">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                        <button class="btn btn-next" onclick="nextStep()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Step 4 -->
+                <div class="step" data-step="4" id="step-4">
+                    <h4>4) Create configs</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-4" class="cmd-pre bg-dark text-success p-3 rounded"># create drosera.toml and foundry.toml
+nano drosera.toml
+# paste drosera.toml with placeholders and save
+
+nano foundry.toml
+# paste foundry.toml and save</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-4">Copy</button>
+                    </div>
+
+                    <!-- drosera.toml sample -->
+                    <div class="file-code-block" id="code-drosera">
+                        <div class="file-code-title">Paste into <code>drosera.toml</code> (replace placeholders)</div>
+                        <pre id="code-drosera-pre" class="bg-dark text-success p-3 rounded">ethereum_rpc = "https://your-rpc.example"
+drosera_rpc = "https://relay.hoodi.drosera.io"
+eth_chain_id = 560048
+drosera_address = "0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D"
+
+[traps]
+
+[traps.my_poc_trap]
+path = "out/Trap.sol/Trap.json"
+response_contract = "0xYOUR_RESPONSE_CONTRACT"
+response_function = "respondWithPoC(bool,uint256)"
+cooldown_period_blocks = 20
+min_number_of_operators = 1
+max_number_of_operators = 2
+block_sample_size = 8
+private_trap = true
+whitelist = ["YOUR_OPERATOR_ADDRESS"]</pre>
+                        <button class="btn copy-btn-inline" data-copy="#code-drosera-pre"
+                            style="right:10px;top:10px;">Copy</button>
+                    </div>
+
+                    <!-- foundry.toml sample -->
+                    <div class="file-code-block" id="code-foundry">
+                        <div class="file-code-title">Paste into <code>foundry.toml</code></div>
+                        <pre id="code-foundry-pre" class="bg-dark text-success p-3 rounded">[profile.default]
+src = "src"
+out = "out"
+libs = ["lib"]
+
+[dependencies]
+drosera-contracts = { git = "https://github.com/drosera-network/drosera-contracts" }</pre>
+                        <button class="btn copy-btn-inline" data-copy="#code-foundry-pre"
+                            style="right:10px;top:10px;">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                        <button class="btn btn-next" onclick="nextStep()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Step 5 -->
+                <div class="step" data-step="5" id="step-5">
+                    <h4>5) Build & test</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-5" class="cmd-pre bg-dark text-success p-3 rounded">forge build
+forge test</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-5">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                        <button class="btn btn-next" onclick="nextStep()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Step 6 -->
+                <div class="step" data-step="6" id="step-6">
+                    <h4>6) Deploy contracts (example)</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-6"
+                            class="cmd-pre bg-dark text-success p-3 rounded"># Replace &lt;RPC_URL&gt; and &lt;PRIVATE_KEY&gt; before running
+forge create src/TrapResponse.sol:TrapResponse --rpc-url &lt;RPC_URL&gt; --private-key &lt;PRIVATE_KEY&gt;
+forge create src/Trap.sol:Trap --rpc-url &lt;RPC_URL&gt; --private-key &lt;PRIVATE_KEY&gt;
+
+# then set response contract in trap
+cast send &lt;TRAP_ADDRESS&gt; "setResponseContract(address)" &lt;RESPONSE_ADDRESS&gt; --rpc-url &lt;RPC_URL&gt; --private-key &lt;PRIVATE_KEY&gt;</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-6">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                        <button class="btn btn-next" onclick="nextStep()">Next →</button>
+                    </div>
+                </div>
+
+                <!-- Step 7 -->
+                <div class="step" data-step="7" id="step-7">
+                    <h4>7) Push to GitHub</h4>
+                    <div class="position-relative">
+                        <pre id="cmd-7" class="cmd-pre bg-dark text-success p-3 rounded">git add .
+git commit -m "Initial PoC trap"
+gh repo create myname/my-poc-project --public --source=. --remote=origin
+git push -u origin main</pre>
+                        <button class="btn copy-btn-inline" data-copy="#cmd-7">Copy</button>
+                    </div>
+
+                    <div class="wizard-controls">
+                        <button class="btn btn-secondary" onclick="prevStep()">← Back</button>
+                        <button class="btn btn-next" onclick="finishWizard()">Finish</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right: Troubleshoot / AI response (always visible) -->
+            <div class="troubleshoot-section">
+                <h4>Troubleshooting</h4>
+                <textarea id="errorInput" rows="6"
+                    placeholder="Paste error output or describe where you're stuck..."></textarea>
+
+                <div class="ai-response mt-2" id="aiResponse">Copy the step instructions on the left and run them. If an
+                    error occurs, paste the error here and click <strong>Ask AI</strong>.</div>
+
+                <div class="mt-3 d-flex gap-2">
+                    <button class="btn btn-sm btn-secondary" onclick="askAI()">Ask AI</button>
+
+                    <button class="btn btn-sm btn-light" onclick="clearError()">Clear</button>
+                </div>
+
+                <div class="ai-explanation mt-3" id="aiExplain">Tips: Replace placeholders like
+                    <code>&lt;RPC_URL&gt;</code> and <code>&lt;PRIVATE_KEY&gt;</code> before running deployment
+                    commands. Never paste your private key into public chat boxes.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getIdeaFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get("idea") || "";
+        }
+
+        const userIdea = getIdeaFromQuery();
+        if (userIdea) {
+            document.querySelector('.small-muted').innerText =
+                `Step-by-step file setup for your idea: "${userIdea}".`;
+        }
+
+    </script>
+    <!-- Scripts: copy buttons, wizard behavior, small UI logic, and animation -->
+    <script>
+        // Wizard state
+        const guideSteps = Array.from(document.querySelectorAll('.guide-section .step'));
+        let currentIndex = 0;
+        function showGuideStep(index) {
+            guideSteps.forEach((el, i) => {
+                el.classList.toggle('active', i === index);
+                el.classList.toggle('d-none', i !== index);
+            });
+            currentIndex = index;
+            // focus troubleshooting textarea for convenience on step change
+            // document.getElementById('errorInput').focus();
+        }
+        function nextStep() {
+            if (currentIndex < guideSteps.length - 1) {
+                showGuideStep(currentIndex + 1);
+            }
+        }
+        function prevStep() {
+            if (currentIndex > 0) {
+                showGuideStep(currentIndex - 1);
+            }
+        }
+        function goToStep(n) {
+            const idx = Math.max(0, Math.min(guideSteps.length - 1, n - 1));
+            showGuideStep(idx);
+        }
+        function finishWizard() {
+            alert("✅ Setup steps completed. You can now follow 'Build & test' and 'Deploy' steps.");
+            showGuideStep(0);
+        }
+
+        // initialize wizard
+        showGuideStep(0);
+
+        // Copy buttons
+        function handleCopyButtons() {
+            document.querySelectorAll('[data-copy]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sel = document.querySelector(btn.getAttribute('data-copy'));
+                    if (!sel) return;
+                    const text = sel.innerText;
+                    navigator.clipboard.writeText(text).then(() => {
+                        const old = btn.innerText;
+                        btn.innerText = 'Copied';
+                        setTimeout(() => btn.innerText = old, 1400);
+                    });
+                });
+            });
+        }
+        handleCopyButtons();
+
+        // Show troubleshoot toggler (focus on right panel)
+        function showTroubleshoot() {
+            const right = document.querySelector('.troubleshoot-section');
+            if (right) right.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            document.getElementById('errorInput').focus();
+        }
+
+        function clearError() {
+            document.getElementById('errorInput').value = '';
+            document.getElementById('aiResponse').innerText = 'AI Response will appear here...';
+        }
+
+
+
+        async function askAI() {
+            const txt = document.getElementById('errorInput').value.trim();
+            const out = document.getElementById('aiResponse');
+
+            if (!txt) {
+                out.innerText = 'Paste your compiler/log output above and click Ask AI.';
+                return;
+            }
+
+            out.innerText = '⏳ Kermit is consulting Boba...';
+            try {
+                const res = await fetch('/api/ai', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        input: txt,
+                        idea: userIdea
+
+                     })
+                });
+                const data = await res.json();
+               out.innerHTML = `<pre>${data.output}</pre>` || data.error || 'No response.';
+
+            } catch (err) {
+                out.innerText = '❌ Error contacting Boba, try Jake: ' + err.message;
+            }
+        }
+
+    </script>
+
+    <!-- Background animation (particle code) -->
+    <script>
+        const canvas = document.getElementById('bg-canvas'), ctx = canvas.getContext('2d');
+        function resetCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
+        window.addEventListener('resize', () => { resetCanvas(); initParticles(); });
+        resetCanvas();
+
+        let particles = [];
+        class Particle {
+            constructor(x, y, s, sx, sy) { Object.assign(this, { x, y, size: s, sx, sy }); }
+            update() { this.x += this.sx; this.y += this.sy; if (this.x < 0 || this.x > canvas.width) this.sx *= -1; if (this.y < 0 || this.y > canvas.height) this.sy *= -1; }
+            draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,102,0,0.7)'; ctx.fill(); }
+        }
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    Math.random() * 3 + 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
+            }
+        }
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    const dx = particles[a].x - particles[b].x,
+                        dy = particles[a].y - particles[b].y,
+                        d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < 120) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(255,102,0,0.12)';
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        initParticles(); animate();
+    </script>
+</body>
+
+</html>

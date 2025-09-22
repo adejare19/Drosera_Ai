@@ -1,0 +1,150 @@
+/* Reset + Background */
+body,
+html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  /* overflow:auto; */
+  background: #0d0d0d;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+#bg-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 0;
+}
+
+/* Main card */
+.step-card {
+  z-index: 1;
+  background: rgba(24, 24, 24, 0.9);
+  padding: 30px 40px;
+  border-radius: 20px;
+  text-align: left;
+  position: relative;
+  max-width: 1200px;
+  margin: 40px auto;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+}
+
+/* Back button */
+.btn-back {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: transparent;
+  color: #ff6600;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.btn-back:hover {
+  transform: scale(1.1);
+}
+
+/* Sections inside card */
+.step-container {
+  display: grid;
+  grid-template-columns: 1fr 0.8fr;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.guide-section h4,
+.troubleshoot-section h4 {
+  color: #ff6600;
+  font-weight: bold;
+  margin-bottom: 15px;
+}
+
+.small-muted {
+  font-size: 0.85rem;
+  color: #aaa;
+  margin-bottom: 6px;
+  display: block;
+}
+
+/* Terminal blocks */
+.cmd-pre {
+  font-family: monospace;
+  font-size: 0.9rem;
+  background: #1b1b1b;
+  color: #33ff66;
+  border-radius: 8px;
+  padding: 15px;
+  overflow-x: auto;
+  line-height: 1.4;
+  border: 1px solid #333;
+}
+
+/* Copy button inline */
+.copy-btn-inline {
+  background: #8e44ad;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+.copy-btn-inline:hover {
+  background: #732d91;
+}
+
+/* Buttons */
+.btn-next {
+  background: #ff6600;
+  color: #fff;
+  font-weight: bold;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 30px;
+  transition: all 0.3s ease-in-out;
+}
+.btn-next:hover {
+  background: #e65c00;
+}
+
+.btn-secondary {
+  background: #555 !important;
+  border: none;
+  color: #fff;
+}
+.btn-light {
+  background: #ddd !important;
+  border: none;
+  color: #000;
+}
+
+/* Troubleshoot section */
+.troubleshoot-section textarea {
+  width: 100%;
+  background: #1b1b1b;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 12px;
+  color: #fff;
+  font-family: monospace;
+  font-size: 0.9rem;
+}
+
+.ai-response {
+  background: rgba(24, 24, 24, 0.85);
+  border-left: 3px solid #ff6600;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.ai-explanation {
+  font-size: 0.8rem;
+  color: #bbb;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 10px;
+  border-radius: 6px;
+}

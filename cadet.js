@@ -1,6 +1,4 @@
-
-  // background particle animation
-  const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d');
+const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d');
   function resetCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
   window.addEventListener('resize', () => { resetCanvas(); initParticles(); });
   resetCanvas();
@@ -52,7 +50,7 @@
     }
   });
 
-  // UI + logic
+  
   let guide = null;
   let stepIdx = parseInt(localStorage.getItem('drosera_step') || '0', 10);
 

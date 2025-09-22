@@ -117,7 +117,7 @@ Remember: Stay within the guide's scope, but make everything as beginner-friendl
     const j = await openaiRes.json();
     const raw = j.choices?.[0]?.message?.content ?? '';
 
-    // Try to parse AI response as JSON
+    
     let parsed;
     try {
       parsed = JSON.parse(raw);
