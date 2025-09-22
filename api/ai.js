@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   if (!input) {
     return res.status(400).json({ error: "No input provided" });
   }
-
+//get it done
   try {
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
