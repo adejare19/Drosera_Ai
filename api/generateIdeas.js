@@ -1,5 +1,5 @@
 // api/generateIdeas.js
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
@@ -15,24 +15,52 @@ export default async function handler(req, res) {
       {
         role: "system",
         content: `
-You are an assistant that generates small, unique, testable Drosera PoC traps. 
-Each output must be a self-contained PoC repository (Foundry-friendly) with:
-- One main Trap contract (implements ITrap, pragma ^0.8.20)
-- One Response contract (with correct response_function signature, deployable on Remix)
-- A drosera.toml (no constructor args, response_function matches)
-- Short foundry.toml
-- Step-by-step setup + test instructions.
+You are an assistant that generates small, unique, testable Drosera PoC traps.
 
-All contracts MUST avoid constructor arguments. Use setter functions instead. 
-The output must be returned as JSON only (no commentary, no code fences).
-        `,
+⚠️ Hard rules (must always follow):
+- Each output must be JSON only (strict, no commentary).
+- Each trap must be a Foundry-friendly repo with:
+  • One main Trap contract (implements ITrap, pragma ^0.8.20)
+  • One Responder contract (with correct response_function signature, deployable on Remix)
+  • A drosera.toml (valid config, no constructor args, response_function matches Responder)
+  • A short foundry.toml
+  • A short verification guide (2–4 steps)
+
+Contract rules:
+- Always import ITrap:  
+  \`import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";\`
+- Trap contracts must implement:  
+  \`function collect() external view override returns (bytes memory);\`  
+  \`function shouldRespond(bytes[] calldata data) external pure override returns (bool, bytes memory);\`
+- Use \`eventLogFilters()\`, \`setEventLogs()\`, and \`getEventLogs()\` if log-based trap.
+- Include \`function version() external pure override returns (string memory)\` returning e.g. "1.0.0".
+- No constructors or constructor args. Use setter functions instead.
+- Contract names and file names must match the trap idea:  
+  Example: "EigenStakeTrap.sol" / "EigenResponder.sol".
+- drosera.toml path must match the out artifact:  
+  Example: "out/EigenStakeTrap.sol/EigenStakeTrap.json".
+
+Output format (strict JSON array of 3 objects):
+[
+  {
+    "title": "string",
+    "network": "string",
+    "protocol": "string",
+    "summary": "string",
+    "files": { "src/<Name>Trap.sol": "string", "src/<Name>Responder.sol": "string" },
+    "drosera_toml": "string",
+    "foundry_toml": "string",
+    "verify": "string"
+  }
+]
+    `,
       },
       {
         role: "user",
         content: `
-Create 3 distinct PoC trap projects based on this idea: "${userIdea}". 
-⚠️ Each trap must come from a different category (choose 3 unique ones from this list):
+Create 3 distinct PoC trap projects based on this idea: "{{USER_IDEA}}".
 
+⚠️ Each trap must belong to a different category (pick 3 unique ones):
 1. Protocol-specific traps
 2. Behavioral / transaction pattern traps
 3. Environment / infra traps
@@ -41,18 +69,18 @@ Create 3 distinct PoC trap projects based on this idea: "${userIdea}".
 6. Economic traps
 7. Cross-domain / interoperability traps
 
-Requirements for each item:
-- title
-- network
-- protocol
-- summary
-- files: { "src/Trap.sol": "...", "src/TrapResponse.sol": "..." }
-- drosera_toml
-- foundry_toml
-- verify
+For each project:
+- "title": short trap name
+- "network": e.g. Ethereum, Polygon, Arbitrum
+- "protocol": e.g. Uniswap, Aave, OpenSea
+- "summary": 2–3 sentences explaining what the trap detects and how it triggers
+- "files": full Solidity source for trap + responder (no placeholders, no partial snippets)
+- "drosera_toml": correct config with response_function matching the Responder
+- "foundry_toml": minimal valid foundry.toml
+- "verify": 2–4 steps on how to build, test, and validate the trap
 
-Return JSON array only. Do not include markdown fences or commentary.
-        `,
+Generate exactly 3 unique projects. Do not output Markdown code fences.
+    `,
       },
     ];
 
@@ -89,4 +117,4 @@ Return JSON array only. Do not include markdown fences or commentary.
     console.error("Error generating ideas:", err);
     res.status(500).json({ error: "Failed to generate ideas" });
   }
-}
+};
