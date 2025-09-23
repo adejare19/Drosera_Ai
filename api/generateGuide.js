@@ -6,7 +6,6 @@ export default async function handler(req, res) {
 
   try {
     const { idea } = req.body;
-
     if (!idea) {
       return res.status(400).json({ error: "Missing idea" });
     }
@@ -19,50 +18,53 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
+        temperature: 0.6,
         messages: [
           {
             role: "system",
-            content: `You are an assistant that generates **small, unique, testable Drosera PoC guides**. 
-Return only JSON matching the schema.`,
+            content: `
+You are a Drosera setup assistant.
+Return ONLY valid JSON (no prose, no markdown fences).
+
+Format:
+{
+  "steps": [
+    {
+      "title": "Step name",
+      "commands": "terminal commands",
+      "files": {
+        "src/FooTrap.sol": "source code",
+        "src/FooResponder.sol": "source code"
+      }
+    }
+  ]
+}
+            `,
           },
           {
             role: "user",
-            content: `
-Create a step-by-step PoC guide for the following idea: "${idea}"
-
-Requirements:
-1. Include clear sequential steps (setup, contracts, configs, build/test, deploy).
-2. Provide full code for Trap.sol, TrapResponse.sol, drosera.toml, and foundry.toml.
-3. No constructors in contracts.
-4. drosera.toml must use correct response_function signature.
-5. Output strictly in JSON with this schema:
-
-{
-  "steps": [
-    { "title": "Step 1 title", "commands": "terminal commands", "files": { "filename": "full code" } }
-  ]
-}
-          `,
+            content: `Generate a step-by-step Foundry setup guide for trap idea: "${idea}". 
+Include minimal but valid code for Trap + Responder, configs, and verification.`,
           },
         ],
-        temperature: 0.7,
-        max_tokens: 1500,
+        response_format: { type: "json_object" },
       }),
     });
 
     const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || "{}";
+    const raw = data.choices?.[0]?.message?.content || "{}";
+    let parsed;
 
-    let guide;
     try {
-      guide = JSON.parse(text);
+      parsed = JSON.parse(raw);
     } catch (err) {
-      return res.status(500).json({ error: "Failed to parse AI response", raw: text });
+      console.error("Parse error:", err, raw);
+      return res.status(500).json({ error: "Invalid AI JSON", raw });
     }
 
-    res.status(200).json({ guide });
+    return res.status(200).json({ guide: parsed });
   } catch (err) {
-    console.error("Error generating guide:", err);
+    console.error("Error in generateGuide:", err);
     res.status(500).json({ error: "Failed to generate guide" });
   }
 }
