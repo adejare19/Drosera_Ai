@@ -5,13 +5,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { prompt } = req.body;
+    const { idea } = req.body;
 
-    if (!prompt) {
-      return res.status(400).json({ error: "Missing prompt" });
-    }
+    const basePrompt = `
+You are an assistant that generates **small, unique, testable Drosera PoC traps**. 
+Each output must be a self-contained PoC repository (Foundry-friendly).
 
-    // Example with OpenAI (make sure OPENAI_API_KEY is in your .env.local)
+⚡ Hard rules:
+- Return JSON only (no prose, no markdown).
+- JSON array must contain exactly 3 objects.
+- Each object must be a unique trap PoC project.
+- Each project must include:
+  - \`title\` (short string)
+  - \`network\` (string, e.g. Ethereum, Polygon, Arbitrum)
+  - \`protocol\` (string, e.g. Uniswap, Aave, OpenSea)
+  - \`category\` (one of: Protocol-specific, Behavioral/transaction-pattern, Environment/infra, Access-control, Cross-domain/interoperability)
+  - \`summary\` (2–3 sentences describing attack scenario + trigger + response)
+  - \`files\` (object: filename -> full file content string)
+    * Must include at least: \`src/<TrapName>.sol\` and \`src/<ResponseName>.sol\`.
+    * Solidity contracts must use pragma ^0.8.20, import Drosera ITrap, and have no constructor args.
+  - \`drosera_toml\` (full valid toml string with correct response_function signature)
+  - \`foundry_toml\` (minimal valid toml string)
+  - \`verify\` (string: 2–4 steps to test locally with Foundry)
+
+Constraints:
+- All 3 projects must use **different categories**.
+- No constructor arguments; use setter functions if config is needed.
+- Filenames must match contract names.
+- drosera.toml must include:
+  * correct \`path\` (e.g. "out/<File>.sol/<Contract>.json")
+  * \`response_contract\` placeholder
+  * \`response_function\` string that exactly matches Response contract’s function.
+- Code should be small, PoC-level, and compile.
+
+If the user supplied an idea ("${idea || ""}"), use it to inspire one of the traps.
+    `;
+
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -21,25 +50,37 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model: "gpt-4o-mini",
         messages: [
-          { role: "system", content: "You are an AI that generates unique Drosera trap PoC ideas." },
-          { role: "user", content: prompt },
+          {
+            role: "system",
+            content:
+              "You are an AI that generates Drosera Foundry-ready trap PoC repos in JSON only.",
+          },
+          { role: "user", content: basePrompt },
         ],
-        max_tokens: 300,
+        temperature: 0.5,
+        max_tokens: 2500,
       }),
     });
 
     const data = await response.json();
 
-    // Extract AI text
-    const text = data.choices?.[0]?.message?.content || "";
-    const ideas = text
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line);
+    if (!response.ok) {
+      throw new Error(data.error?.message || "OpenAI API error");
+    }
 
-    res.status(200).json({ ideas });
+    let projects = [];
+    const raw = data.choices?.[0]?.message?.content?.trim() || "";
+
+    try {
+      projects = JSON.parse(raw);
+    } catch (e) {
+      console.error("Parse error, raw output:", raw);
+      throw new Error("Model did not return valid JSON");
+    }
+
+    res.status(200).json({ projects });
   } catch (err) {
-    console.error("Error generating ideas:", err);
-    res.status(500).json({ error: "Failed to generate ideas" });
+    console.error("Error generating PoC traps:", err);
+    res.status(500).json({ error: "Failed to generate PoC traps" });
   }
 }
