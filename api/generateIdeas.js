@@ -11,7 +11,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing userIdea" });
     }
 
-    // 🔹 Refined system+user prompt
     const messages = [
       {
         role: "system",
@@ -25,7 +24,7 @@ Each output must be a self-contained PoC repository (Foundry-friendly) with:
 - Step-by-step setup + test instructions.
 
 All contracts MUST avoid constructor arguments. Use setter functions instead. 
-The output must be returned as JSON only (no commentary outside JSON).
+The output must be returned as JSON only (no commentary, no code fences).
         `,
       },
       {
@@ -43,30 +42,16 @@ Create 3 distinct PoC trap projects based on this idea: "${userIdea}".
 7. Cross-domain / interoperability traps
 
 Requirements for each item:
-- title: short trap name
-- network: e.g. Ethereum, Polygon, Arbitrum
-- protocol: e.g. Uniswap, Aave, OpenSea
-- summary: 2–3 sentences on what the trap detects and how it triggers
-- files: full source code for src/Trap.sol and src/TrapResponse.sol (no partial snippets)
-- drosera_toml: valid drosera.toml for this trap
-- foundry_toml: minimal but correct foundry.toml
-- verify: 2–4 steps on how to test & validate the trap
+- title
+- network
+- protocol
+- summary
+- files: { "src/Trap.sol": "...", "src/TrapResponse.sol": "..." }
+- drosera_toml
+- foundry_toml
+- verify
 
-JSON schema (strict):
-[
-  {
-    "title": "string",
-    "network": "string",
-    "protocol": "string",
-    "summary": "string",
-    "files": { "src/Trap.sol": "string", "src/TrapResponse.sol": "string" },
-    "drosera_toml": "string",
-    "foundry_toml": "string",
-    "verify": "string"
-  }
-]
-
-Generate exactly 3 projects. Each must be clearly different (different category, detection logic, protocol or network).
+Return JSON array only. Do not include markdown fences or commentary.
         `,
       },
     ];
@@ -81,18 +66,22 @@ Generate exactly 3 projects. Each must be clearly different (different category,
         model: "gpt-4o-mini",
         messages,
         max_tokens: 1800,
-        temperature: 0.7, // 🔹 balanced randomness
+        temperature: 0.7,
       }),
     });
 
     const data = await response.json();
+    let raw = data.choices?.[0]?.message?.content || "[]";
+
+    // 🔹 Strip ```json fences if present
+    raw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
 
     let ideasJson;
     try {
-      ideasJson = JSON.parse(data.choices?.[0]?.message?.content || "[]");
+      ideasJson = JSON.parse(raw);
     } catch (e) {
-      console.error("❌ Failed to parse AI JSON:", e);
-      return res.status(500).json({ error: "Invalid AI JSON output" });
+      console.error("❌ Failed to parse AI JSON:", e, raw);
+      return res.status(500).json({ error: "Invalid AI JSON output", raw });
     }
 
     res.status(200).json({ ideas: ideasJson });

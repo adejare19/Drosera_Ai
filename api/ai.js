@@ -21,11 +21,18 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: `You are a Drosera setup assistant. Only troubleshoot errors based on the provided guide JSON. Don’t invent steps.`,
+            content: `You are a Drosera setup assistant. 
+Respond with clear, human-readable troubleshooting steps ONLY.
+Never wrap output in JSON or markdown fences.
+Base your suggestions strictly on the provided guide JSON.`,
           },
           {
             role: "user",
-            content: `Idea: ${idea}\n\nGuide JSON:\n${JSON.stringify(guide, null, 2)}\n\nUser Error:\n${input}`,
+            content: `Idea: ${idea}\n\nGuide JSON:\n${JSON.stringify(
+              guide,
+              null,
+              2
+            )}\n\nUser Error:\n${input}`,
           },
         ],
         temperature: 0.3,
@@ -34,7 +41,10 @@ export default async function handler(req, res) {
     });
 
     const data = await response.json();
-    const output = data.choices?.[0]?.message?.content || "No response.";
+    let output = data.choices?.[0]?.message?.content || "No response.";
+
+    // 🔹 Strip code fences if the AI still tries to add them
+    output = output.replace(/```[\s\S]*?```/g, "").trim();
 
     res.status(200).json({ output });
   } catch (err) {
