@@ -301,91 +301,82 @@ git push -u origin main</pre>
 
                 <div class="ai-explanation mt-3" id="aiExplain">Tips: Replace placeholders like
                     <code>&lt;RPC_URL&gt;</code> and <code>&lt;PRIVATE_KEY&gt;</code> before running deployment
-                    commands. Never paste your private key into public chat boxes.</div>
+                    commands. Never paste your private key into public chat boxes.
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        function getIdeaFromQuery() {
-            const params = new URLSearchParams(window.location.search);
-            return params.get("idea") || "";
-        }
+        let currentGuide = null;
+        const userIdea = new URLSearchParams(window.location.search).get("idea") || "";
 
-        const userIdea = getIdeaFromQuery();
-        if (userIdea) {
-            document.querySelector('.small-muted').innerText =
-                `Step-by-step file setup for your idea: "${userIdea}".`;
-        }
+        document.querySelector('.small-muted').innerText =
+            userIdea ? `Step-by-step file setup for your idea: "${userIdea}".` : "Step-by-step file setup.";
 
-    </script>
-    <!-- Scripts: copy buttons, wizard behavior, small UI logic, and animation -->
-    <script>
-        // Wizard state
-        const guideSteps = Array.from(document.querySelectorAll('.guide-section .step'));
-        let currentIndex = 0;
-        function showGuideStep(index) {
-            guideSteps.forEach((el, i) => {
-                el.classList.toggle('active', i === index);
-                el.classList.toggle('d-none', i !== index);
+        async function loadGuide() {
+            const res = await fetch('/api/generateGuide', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ idea: userIdea })
             });
-            currentIndex = index;
-            // focus troubleshooting textarea for convenience on step change
-            // document.getElementById('errorInput').focus();
-        }
-        function nextStep() {
-            if (currentIndex < guideSteps.length - 1) {
-                showGuideStep(currentIndex + 1);
+
+            const data = await res.json();
+            if (!data.guide) {
+                document.querySelector('.guide-section').innerHTML =
+                    `<p class="text-danger">❌ Failed to load guide for "${userIdea}".</p>`;
+                return;
             }
+
+            currentGuide = data.guide;
+            renderGuide(data.guide.steps);
         }
-        function prevStep() {
-            if (currentIndex > 0) {
-                showGuideStep(currentIndex - 1);
-            }
+
+        function renderGuide(steps) {
+            const guideSection = document.querySelector('.guide-section');
+            guideSection.innerHTML = ""; // clear static HTML
+
+            steps.forEach((step, i) => {
+                const div = document.createElement("div");
+                div.className = "step " + (i === 0 ? "active" : "d-none");
+                div.dataset.step = i + 1;
+
+                div.innerHTML = `
+        <h4>${i + 1}) ${step.title}</h4>
+        <div class="position-relative">
+          <pre class="cmd-pre bg-dark text-success p-3 rounded">${step.commands || ""}</pre>
+        </div>
+        ${(step.files ? Object.entries(step.files).map(([file, content]) => `
+          <div class="file-code-block">
+            <div class="file-code-title">Paste into <code>${file}</code></div>
+            <pre class="bg-dark text-success p-3 rounded">${content}</pre>
+          </div>
+        `).join("") : "")}
+        <div class="wizard-controls">
+          ${i > 0 ? `<button class="btn btn-secondary" onclick="goToStep(${i})">← Back</button>` : ""}
+          ${i < steps.length - 1
+                        ? `<button class="btn btn-next" onclick="goToStep(${i + 2})">Next →</button>`
+                        : `<button class="btn btn-next" onclick="finishWizard()">Finish</button>`}
+        </div>
+      `;
+                guideSection.appendChild(div);
+            });
         }
+
         function goToStep(n) {
-            const idx = Math.max(0, Math.min(guideSteps.length - 1, n - 1));
-            showGuideStep(idx);
-        }
-        function finishWizard() {
-            alert("✅ Setup steps completed. You can now follow 'Build & test' and 'Deploy' steps.");
-            showGuideStep(0);
-        }
-
-        // initialize wizard
-        showGuideStep(0);
-
-        // Copy buttons
-        function handleCopyButtons() {
-            document.querySelectorAll('[data-copy]').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const sel = document.querySelector(btn.getAttribute('data-copy'));
-                    if (!sel) return;
-                    const text = sel.innerText;
-                    navigator.clipboard.writeText(text).then(() => {
-                        const old = btn.innerText;
-                        btn.innerText = 'Copied';
-                        setTimeout(() => btn.innerText = old, 1400);
-                    });
-                });
+            const steps = document.querySelectorAll('.guide-section .step');
+            steps.forEach((s, i) => {
+                s.classList.toggle('active', i === n - 1);
+                s.classList.toggle('d-none', i !== n - 1);
             });
         }
-        handleCopyButtons();
 
-        // Show troubleshoot toggler (focus on right panel)
-        function showTroubleshoot() {
-            const right = document.querySelector('.troubleshoot-section');
-            if (right) right.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            document.getElementById('errorInput').focus();
+        function finishWizard() {
+            alert("✅ Setup complete. You can now follow 'Build & test' and 'Deploy'.");
+            goToStep(1);
         }
 
-        function clearError() {
-            document.getElementById('errorInput').value = '';
-            document.getElementById('aiResponse').innerText = 'AI Response will appear here...';
-        }
-
-
-
+        // Troubleshoot with guide context
         async function askAI() {
             const txt = document.getElementById('errorInput').value.trim();
             const out = document.getElementById('aiResponse');
@@ -394,27 +385,32 @@ git push -u origin main</pre>
                 out.innerText = 'Paste your compiler/log output above and click Ask AI.';
                 return;
             }
+            if (!currentGuide) {
+                out.innerText = '❌ No guide context loaded yet.';
+                return;
+            }
 
             out.innerText = '⏳ Kermit is consulting Boba...';
             try {
                 const res = await fetch('/api/ai', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        input: txt,
-                        idea: userIdea
-
-                     })
+                    body: JSON.stringify({ input: txt, idea: userIdea, guide: currentGuide })
                 });
                 const data = await res.json();
-               out.innerHTML = `<pre>${data.output}</pre>` || data.error || 'No response.';
+                out.innerHTML = data.output
+                    ? `<pre>${data.output}</pre>`
+                    : (data.error || 'No response.');
 
             } catch (err) {
-                out.innerText = '❌ Error contacting Boba, try Jake: ' + err.message;
+                out.innerText = '❌ Error contacting Boba: ' + err.message;
             }
         }
 
+        // Load guide immediately
+        if (userIdea) loadGuide();
     </script>
+
 
     <!-- Background animation (particle code) -->
     <script>
