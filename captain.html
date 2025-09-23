@@ -106,42 +106,47 @@
       }
     }
 
-    async function fetchIdeas() {
-      const container = document.getElementById('idea-options');
-      container.innerHTML = "Fetching ideas from Bjorn...";
+   
+  async function fetchIdeas() {
+    const container = document.getElementById('idea-options');
+    container.innerHTML = "Fetching ideas from Bjorn...";
 
-      try {
-        const res = await fetch('/api/generateIdeas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: `Generate 3 unique Drosera trap PoC ideas (simple but functional, each based on a DeFi or dApp protocol).`
-          })
-        });
+    try {
+      // Get text from textarea if provided
+      const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
 
-        const data = await res.json();
-        const ideas = data.ideas || [];
+      const res = await fetch('/api/generateIdeas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIdea }) // 🔹 match backend
+      });
 
-        container.innerHTML = "";
+      const data = await res.json();
 
-        if (!ideas.length) {
-          container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
-          return;
-        }
-
-        ideas.forEach((idea) => {
-          const btn = document.createElement("button");
-          btn.className = "btn true mb-2";
-          btn.innerText = idea;
-          btn.onclick = () => generateRepo(idea);
-          container.appendChild(btn);
-        });
-
-      } catch (err) {
-        container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
-        console.error(err);
+      if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
+        container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
+        return;
       }
+
+      container.innerHTML = "";
+
+      // 🔹 Render each idea nicely
+      data.ideas.forEach((idea) => {
+        const btn = document.createElement("button");
+        btn.className = "btn true mb-2 text-start";
+        btn.style.whiteSpace = "pre-wrap"; // better formatting
+        btn.innerText = `${idea.title}\n${idea.summary}`;
+        btn.onclick = () => generateRepo(idea.title);
+        container.appendChild(btn);
+      });
+
+    } catch (err) {
+      container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
+      console.error(err);
     }
+  }
+
+
 
     function generateRepo(idea) {
       // If no idea passed, use textarea input
