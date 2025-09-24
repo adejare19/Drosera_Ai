@@ -1,16 +1,13 @@
-// import OpenAI from "openai";
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
 
   const { username, step, error } = req.body || {};
-  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
+  if (!process.env.OPENAI_API_KEY) {
+    return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
+  }
 
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  console.log("Has key?", !!process.env.OPENAI_API_KEY);
-
-
-  // The system prompt is now strictly for troubleshooting
   const systemPrompt = `
 You are a friendly Drosera setup assistant designed to help beginners with little Linux experience. Your sole source of truth is the JSON "guide" object the user supplies.
 
@@ -46,17 +43,8 @@ If outside scope:
   "confidence": "low",
   "cannot_fix": true
 }
-
-***Common beginner issues to watch for:***
-- Permission errors (suggest checking if sudo is needed)
-- Network connectivity issues
-- Missing dependencies
-- Placeholder values not replaced (PV_KEY, VPS_IP, etc.)
-- Copy-paste errors with special characters
-- Services already running/not running
 `;
 
-  // The user message is now only for troubleshooting, regardless of the `mode`
   const userMessage = `
 Mode: troubleshoot
 Username: ${username}
@@ -67,31 +55,43 @@ ${JSON.stringify(step, null, 2)}
 `;
 
   try {
-    const openaiRes = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: 1000,
-      temperature: 0.3,
-      response_format: { "type": "json_object" },
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userMessage },
+        ],
+        max_tokens: 1000,
+        temperature: 0.3,
+      }),
     });
 
-    const raw = openaiRes.choices?.[0]?.message?.content ?? '';
+    if (!response.ok) {
+      const txt = await response.text();
+      console.error("OpenAI error:", txt);
+      return res.status(502).json({ error: "OpenAI request failed", details: txt });
+    }
+
+    const data = await response.json();
+    const raw = data.choices?.[0]?.message?.content ?? "";
 
     let parsed;
     try {
       parsed = JSON.parse(raw);
     } catch (e) {
-      console.error('Invalid JSON from AI:', raw);
-      return res.status(500).json({ error: 'AI did not return valid JSON', raw });
+      console.error("Invalid JSON from AI:", raw);
+      return res.status(500).json({ error: "AI did not return valid JSON", raw });
     }
 
     return res.status(200).json(parsed);
-
   } catch (err) {
     console.error(err);
-    return res.status(500).json({ error: 'Server error', details: err.message });
+    return res.status(500).json({ error: "Server error", details: err.message });
   }
 }
