@@ -102,7 +102,7 @@
           "title": "Create SystemD Service File",
           "description": "You will create a new systemd service file to manage the Drosera operator node.",
           "commands": [
-            "sudo tee /etc/systemd/system/drosera.service > /dev/null <<EOF",
+            "sudo tee /etc/systemd/system/drosera.service > /dev/null &lt;&lt;EOF",
             "[Unit]",
             "Description=drosera node service",
             "After=network-online.target",
