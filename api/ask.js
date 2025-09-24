@@ -1,12 +1,14 @@
-// import { GoogleGenerativeAI } from "@google/generative-ai";
+import OpenAI from "openai";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { username, step, error } = req.body || {};
-  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing API_KEY' });
+  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
 
-  // The AI's only job is troubleshooting, so we use a prompt specific to that.
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+  // The system prompt is now strictly for troubleshooting
   const systemPrompt = `
 You are a friendly Drosera setup assistant designed to help beginners with little Linux experience. Your sole source of truth is the JSON "guide" object the user supplies.
 
@@ -52,7 +54,7 @@ If outside scope:
 - Services already running/not running
 `;
 
-  // The user message is now only for troubleshooting.
+  // The user message is now only for troubleshooting, regardless of the `mode`
   const userMessage = `
 Mode: troubleshoot
 Username: ${username}
@@ -63,20 +65,27 @@ ${JSON.stringify(step, null, 2)}
 `;
 
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-      systemPrompt: systemPrompt,
-      generationConfig: {
-        maxOutputTokens: 1000,
-        temperature: 0.3,
-        response_format: { "type": "json_object" },
-      },
+    const openaiRes = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      max_tokens: 1000,
+      temperature: 0.3,
+      response_format: { "type": "json_object" },
     });
 
-    const parsed = JSON.parse(result.response.text());
+    const raw = openaiRes.choices?.[0]?.message?.content ?? '';
+
+    let parsed;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (e) {
+      console.error('Invalid JSON from AI:', raw);
+      return res.status(500).json({ error: 'AI did not return valid JSON', raw });
+    }
+
     return res.status(200).json(parsed);
 
   } catch (err) {
