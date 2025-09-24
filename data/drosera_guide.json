@@ -11,6 +11,7 @@
     {
       "id": "login_vps",
       "title": "Login to VPS",
+      "description": "This step shows you how to securely log in to your Virtual Private Server (VPS) using SSH.",
       "commands": [
         "ssh username@your.vps.ip.address",
         "Enter password → press Enter"
@@ -20,24 +21,27 @@
     {
       "id": "install_dependencies",
       "title": "Install Dependencies",
+      "description": "Here, you will update your package list and install all the necessary tools and libraries needed for the Drosera node to run.",
       "commands": [
         "sudo apt-get update && sudo apt-get upgrade -y",
         "sudo apt install curl screen ufw iptables build-essential git wget lz4 jq make gcc nano automake autoconf tmux htop nvme-cli libgbm1 pkg-config libssl-dev libleveldb-dev tar clang bsdmainutils ncdu unzip libleveldb-dev -y"
       ],
       "notes": [
-        "Create screen with: screen -S drosera",
-        "Detach: ctrl+a+d",
-        "Resume: screen -r drosera",
-        "Avoid spamming multiple screens"
+        "To create a new terminal session, use: screen -S drosera",
+        "To detach from the session, use: ctrl+a+d",
+        "To resume the session, use: screen -r drosera",
+        "Avoid running multiple screens at once."
       ]
     },
     {
       "id": "trap_setup",
       "title": "Drosera Trap Setup",
+      "description": "This section guides you through setting up the Drosera trap on your machine, including installing dependencies and building the project.",
       "substeps": [
         {
           "id": "install_tools",
           "title": "Install Required Tools",
+          "description": "This substep installs essential command-line tools like bun, foundry, and droseraup, which are required for the project setup.",
           "commands": [
             "cd",
             "curl -L https://app.drosera.io/install | bash",
@@ -53,6 +57,7 @@
         {
           "id": "init_project",
           "title": "Initialize Trap Project",
+          "description": "You will create a new directory for your trap and initialize the project using a template from the drosera-network.",
           "commands": [
             "mkdir ~/my-drosera-trap",
             "cd ~/my-drosera-trap",
@@ -68,6 +73,7 @@
         {
           "id": "build_trap",
           "title": "Build Trap",
+          "description": "These commands will install the project dependencies and build the trap contract.",
           "commands": [
             "bun install",
             "forge build"
@@ -78,10 +84,12 @@
     {
       "id": "operator_setup",
       "title": "Drosera Operator Setup (SystemD)",
+      "description": "This section sets up the Drosera operator node to run as a background service on your system.",
       "substeps": [
         {
           "id": "remove_old_service",
           "title": "Remove Old Drosera SystemD Service",
+          "description": "This step removes any previous Drosera service configurations to ensure a clean install.",
           "commands": [
             "sudo systemctl stop drosera",
             "sudo systemctl disable drosera",
@@ -92,6 +100,7 @@
         {
           "id": "create_service",
           "title": "Create SystemD Service File",
+          "description": "You will create a new systemd service file to manage the Drosera operator node.",
           "commands": [
             "sudo tee /etc/systemd/system/drosera.service > /dev/null <<EOF",
             "[Unit]",
@@ -104,14 +113,14 @@
             "RestartSec=15",
             "LimitNOFILE=65535",
             "ExecStart=$(which drosera-operator) node --db-file-path $HOME/.drosera.db --network-p2p-port 31313 --server-port 31314 \\",
-            "    --eth-rpc-url https://ethereum-hoodi-rpc.publicnode.com \\",
-            "    --eth-backup-rpc-url https://rpc.hoodi.ethpandaops.io \\",
-            "    --drosera-address 0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D \\",
-            "    --eth-private-key PV_KEY \\",
-            "    --listen-address 0.0.0.0 \\",
-            "    --network-external-p2p-address VPS_IP \\",
-            "    --disable-dnr-confirmation true \\",
-            "    --eth-chain-id 560048",
+            "      --eth-rpc-url https://ethereum-hoodi-rpc.publicnode.com \\",
+            "      --eth-backup-rpc-url https://rpc.hoodi.ethpandaops.io \\",
+            "      --drosera-address 0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D \\",
+            "      --eth-private-key PV_KEY \\",
+            "      --listen-address 0.0.0.0 \\",
+            "      --network-external-p2p-address VPS_IP \\",
+            "      --disable-dnr-confirmation true \\",
+            "      --eth-chain-id 560048",
             "",
             "[Install]",
             "WantedBy=multi-user.target",
@@ -125,6 +134,7 @@
         {
           "id": "start_service",
           "title": "Reload & Start Service",
+          "description": "These commands reload the system daemon, enable the service to start on boot, and then start the Drosera service.",
           "commands": [
             "sudo systemctl daemon-reload",
             "sudo systemctl enable drosera",
@@ -134,6 +144,7 @@
         {
           "id": "check_logs",
           "title": "Check & Control Node",
+          "description": "These commands allow you to check the status of your Drosera node and manage it.",
           "commands": [
             "journalctl -u drosera.service -f",
             "sudo systemctl status drosera",
@@ -146,11 +157,12 @@
     {
       "id": "register_operator",
       "title": "Register Operator",
+      "description": "This command registers your operator with the Drosera network, allowing it to start participating.",
       "commands": [
         "drosera-operator register \\",
-        "  --eth-rpc-url https://ethereum-hoodi-rpc.publicnode.com \\",
-        "  --eth-private-key your_eth_private_key_here \\",
-        "  --drosera-address 0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D"
+        "  --eth-rpc-url https://ethereum-hoodi-rpc.publicnode.com \\",
+        "  --eth-private-key your_eth_private_key_here \\",
+        "  --drosera-address 0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D"
       ],
       "notes": [
         "Replace your_eth_private_key_here with your wallet private key"
@@ -159,6 +171,7 @@
     {
       "id": "firewall",
       "title": "Firewall Configuration",
+      "description": "You will configure your firewall to allow necessary traffic for the Drosera node to function correctly.",
       "commands": [
         "sudo ufw allow ssh",
         "sudo ufw allow 22",
@@ -170,18 +183,21 @@
     {
       "id": "cadet_role",
       "title": "Get Cadet Role (Discord Integration)",
+      "description": "This section guides you on how to earn the 'Cadet' role in Discord by running a specific trap.",
       "substeps": [
         {
           "id": "create_contract",
           "title": "Create DiscordNameTrap.sol",
+          "description": "You will create a new solidity file for the Discord name trap contract.",
           "commands": [
             "nano src/DiscordNameTrap.sol"
           ],
-          "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport {ITrap} from \"drosera-contracts/interfaces/ITrap.sol\";\n\ninterface IMockResponse {\n    function isActive() external view returns (bool);\n}\n\ncontract Trap is ITrap {\n    address public constant RESPONSE_CONTRACT = 0x25E2CeF36020A736CF8a4D2cAdD2EBE3940F4608;\n    string constant discordName = \"YOURDISCORD\";\n\n    function collect() external view returns (bytes memory) {\n        bool active = IMockResponse(RESPONSE_CONTRACT).isActive();\n        return abi.encode(active, discordName);\n    }\n\n    function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory) {\n        (bool active, string memory name) = abi.decode(data[0], (bool, string));\n        if (!active || bytes(name).length == 0) {\n            return (false, bytes(\"\"));\n        }\n        return (true, abi.encode(name));\n    }\n}"
+          "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.20;\n\nimport {ITrap} from \"drosera-contracts/interfaces/ITrap.sol\";\n\ninterface IMockResponse {\n      function isActive() external view returns (bool);\n}\n\ncontract Trap is ITrap {\n      address public constant RESPONSE_CONTRACT = 0x25E2CeF36020A736CF8a4D2cAdD2EBE3940F4608;\n      string constant discordName = \"YOURDISCORD\";\n\n      function collect() external view returns (bytes memory) {\n          bool active = IMockResponse(RESPONSE_CONTRACT).isActive();\n          return abi.encode(active, discordName);\n      }\n\n      function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory) {\n          (bool active, string memory name) = abi.decode(data[0], (bool, string));\n          if (!active || bytes(name).length == 0) {\n              return (false, bytes(\"\"));\n          }\n          return (true, abi.encode(name));\n      }\n}"
         },
         {
           "id": "edit_toml",
           "title": "Edit drosera.toml Config",
+          "description": "You will edit the main configuration file for the Drosera trap.",
           "commands": [
             "nano drosera.toml"
           ],
@@ -208,6 +224,7 @@
         {
           "id": "deploy_trap",
           "title": "Deploy Trap",
+          "description": "These commands will build and deploy your trap contract to the blockchain.",
           "commands": [
             "forge build",
             "drosera dryrun",
@@ -222,11 +239,12 @@
         {
           "id": "optin_trap",
           "title": "Opt-in Trap Config",
+          "description": "You will opt your operator node in to the deployed trap.",
           "commands": [
             "drosera-operator optin \\",
-            "  --eth-rpc-url https://ethereum-hoodi-rpc.publicnode.com \\",
-            "  --eth-private-key your_eth_private_key_here \\",
-            "  --trap-config-address your_trap_address_here"
+            "  --eth-rpc-url https://ethereum-hoodi-rpc.publicnode.com \\",
+            "  --eth-private-key your_eth_private_key_here \\",
+            "  --trap-config-address your_trap_address_here"
           ],
           "notes": [
             "Replace your_trap_address_here with deployed trap address",
@@ -236,6 +254,7 @@
         {
           "id": "rerun_operator",
           "title": "Re-run Operator Node (SystemD)",
+          "description": "These commands will restart your node to pick up the changes you've made.",
           "commands": [
             "sudo systemctl daemon-reload",
             "sudo systemctl enable drosera",
@@ -245,6 +264,7 @@
         {
           "id": "view_discords",
           "title": "View Submitted Discord Names",
+          "description": "This command allows you to verify that your Discord name has been successfully submitted to the contract.",
           "commands": [
             "source /root/.bashrc",
             "cast call 0x25E2CeF36020A736CF8a4D2cAdD2EBE3940F4608 \"getDiscordNamesBatch(uint256,uint256)(string[])\" 0 20000 --rpc-url https://ethereum-hoodi-rpc.publicnode.com | grep -E yourname"
