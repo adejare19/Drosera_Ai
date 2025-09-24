@@ -65,7 +65,7 @@ const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d'
     }
   }
 
- function renderStep(i) {
+function renderStep(i) {
     const s = guide.steps[i];
     if (!s) {
         document.getElementById('stepTitle').innerText = 'All done';
@@ -74,17 +74,30 @@ const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d'
         return;
     }
     document.getElementById('stepTitle').innerText = `Step ${i + 1}: ${s.title}`;
+    
+    // Use the notes from the local JSON guide
     document.getElementById('stepDesc').innerText = (s.notes || []).join(' • ') || '';
     document.getElementById('stepCounter').innerText = `${i + 1}/${guide.steps.length}`;
 
     const area = document.getElementById('commandsArea');
     area.innerHTML = '';
 
+    // Conditionally render commands or code blocks based on the data
     if (s.substeps && s.substeps.length) {
-        // Render each substep separately
         s.substeps.forEach((ss, idx) => {
             const sub = document.createElement('div');
-            sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${(ss.commands || []).join('\n')}</pre>`;
+            // If the substep has a `code` block, render that
+            if (ss.code) {
+                sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${ss.code}</pre>`;
+            } 
+            // If the substep has a `config` block, render that as a code block
+            else if (ss.config) {
+                 sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${JSON.stringify(ss.config, null, 2)}</pre>`;
+            } 
+            // Otherwise, render the `commands` array
+            else if (ss.commands && ss.commands.length) {
+                sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${ss.commands.join('\n')}</pre>`;
+            }
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
             btn.textContent = '📋 Copy';
@@ -94,7 +107,6 @@ const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d'
             area.appendChild(sub);
         });
     } else if (s.commands && s.commands.length) {
-        // Render a single command block for a step with no substeps
         const codeId = 'codeBlock';
         const wrapper = document.createElement('div');
         wrapper.style.position = 'relative';

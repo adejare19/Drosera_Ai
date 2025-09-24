@@ -2,12 +2,15 @@
 <html lang="en">
 
 <head>
+   
   <meta charset="UTF-8">
+   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Drosera PoC Generator</title>
+    <title>Drosera PoC Generator</title>
+   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <style>
+    <style>
     body,
     html {
       margin: 0;
@@ -64,38 +67,36 @@
 </head>
 
 <body>
-  <canvas id="bgCanvas"></canvas>
+    <canvas id="bgCanvas"></canvas>
 
-  <div class="d-flex align-items-center justify-content-center vh-100">
-    <div class="step-card">
+    <div class="d-flex align-items-center justify-content-center vh-100">
+        <div class="step-card">
 
-      <!-- Step 1 -->
-      <div id="step-start" class="text-center">
-        <h2 class="mb-3">Drosera PoC Generator</h2>
-        <p class="text-light">Do you already have a PoC idea, or would you like AI to suggest one?</p>
-        <div class="d-flex justify-content-center gap-3">
-          <button class="btn false" onclick="showStep('idea')">I have an idea</button>
-          <button class="btn true" onclick="showStep('generate')">Suggest Ideas</button>
-        </div>
-      </div>
+                  <div id="step-start" class="text-center">
+                <h2 class="mb-3">Drosera PoC Generator</h2>
+                <p class="text-light">Do you already have a PoC idea, or would you like AI to suggest one?</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button class="btn false" onclick="showStep('idea')">I have an idea</button>
+                    <button class="btn true" onclick="showStep('generate')">Suggest Ideas</button>
+                  </div>
+              </div>
 
-      <!-- Step 2a: User Idea -->
-      <div id="step-idea" class="d-none">
-        <h4 class="mb-3">Enter your PoC Idea</h4>
-        <textarea id="userIdea" class="form-control mb-3" rows="4"
-          placeholder="Describe your PoC idea..."></textarea>
-        <button class="btn w-100" style="background: #ff6600;" onclick="generateRepo()">Generate Repo</button>
-      </div>
+                  <div id="step-idea" class="d-none">
+                <h4 class="mb-3">Enter your PoC Idea</h4>
+                <textarea id="userIdea" class="form-control mb-3" rows="4"          
+          placeholder="Describe your PoC idea"></textarea>
+                <button class="btn btn-warning w-100" onclick="generateRepo()">Generate Repo</button>
+              </div>
 
-      <!-- Step 2b: AI Ideas -->
-      <div id="step-generate" class="d-none">
-        <h4 class="mb-3">AI-Generated Ideas</h4>
-        <div id="idea-options" class="d-flex flex-column mb-3 text-light"></div>
-      </div>
+                  <div id="step-generate" class="d-none">
+                <h4 class="mb-3">AI-Generated Ideas</h4>
+                <div id="idea-options" class="d-flex flex-column mb-3 text-light"></div>
+              </div>
 
-    </div>
-  </div>
+          </div>
+      </div>
 
+   
   <script>
     async function showStep(step) {
       document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
@@ -106,60 +107,66 @@
       }
     }
 
-   
-  async function fetchIdeas() {
-    const container = document.getElementById('idea-options');
-    container.innerHTML = "Fetching ideas from Bjorn...";
 
-    try {
-      // Get text from textarea if provided
-      const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
+    async function fetchIdeas() {
+      const container = document.getElementById('idea-options');
+      container.innerHTML = "Fetching ideas from Bjorn...";
 
-      const res = await fetch('/api/generateIdeas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userIdea }) // 🔹 match backend
-      });
+      try {
+        // Get text from textarea if provided
+        const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
 
-      const data = await res.json();
+        const res = await fetch('/api/generateIdeas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userIdea }) // 🔹 match backend
+        });
 
-      if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
-        container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
-        return;
+        const data = await res.json();
+
+        if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
+          container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
+          return;
+        }
+
+        container.innerHTML = "";
+
+        // 🔹 Render each idea nicely
+        data.ideas.forEach((idea) => {
+          const btn = document.createElement("button");
+          btn.className = "btn true mb-2 text-start";
+          btn.style.whiteSpace = "pre-wrap"; // better formatting
+          btn.innerText = `${idea.title}\n${idea.summary}`;
+          // CORRECTED: Pass the entire idea object to the function
+          btn.onclick = () => generateRepo(idea);
+          container.appendChild(btn);
+        });
+
+      } catch (err) {
+        container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
+        console.error(err);
       }
-
-      container.innerHTML = "";
-
-      // 🔹 Render each idea nicely
-      data.ideas.forEach((idea) => {
-        const btn = document.createElement("button");
-        btn.className = "btn true mb-2 text-start";
-        btn.style.whiteSpace = "pre-wrap"; // better formatting
-        btn.innerText = `${idea.title}\n${idea.summary}`;
-        btn.onclick = () => generateRepo(idea.title);
-        container.appendChild(btn);
-      });
-
-    } catch (err) {
-      container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
-      console.error(err);
     }
-  }
 
 
 
     function generateRepo(idea) {
       // If no idea passed, use textarea input
-      if (!idea) {
-        idea = document.getElementById('userIdea').value.trim();
+      // UPDATED: Now check if `idea` is an object, and if so, use its title
+      let ideaText;
+      if (typeof idea === 'object' && idea !== null && idea.title) {
+        ideaText = idea.title;
+      } else {
+        ideaText = document.getElementById('userIdea').value.trim();
       }
 
-      if (!idea) {
+      if (!ideaText) {
         alert("Please enter or select an idea first!");
         return;
       }
 
-      window.location.href = `setup.html?idea=${encodeURIComponent(idea)}`;
+      // Pass the text to the next page
+      window.location.href = `setup.html?idea=${encodeURIComponent(ideaText)}`;
     }
 
     // Background Canvas Animation
@@ -209,4 +216,5 @@
     initParticles(); animate();
   </script>
 </body>
+
 </html>
