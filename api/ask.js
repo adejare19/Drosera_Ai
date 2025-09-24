@@ -1,11 +1,10 @@
-import fetch from 'node-fetch';
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { username, step, error, mode } = req.body || {};
   if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
 
+  // --- START OF REFACTORED PROMPT ---
   const systemPrompt = `
 You are a friendly Drosera setup assistant designed to help beginners with little Linux experience. Your sole source of truth is the JSON "guide" object the user supplies.
 
@@ -38,12 +37,12 @@ A) Render Mode (mode: "render"):
     "id": "<step.id>",
     "title": "<step.title>",
     "description": "<beginner-friendly explanation of what this step does and why it's needed>",
-    "commands": ["cmd1", "cmd2", "..."],
+    "commands": ["cmd1", "cmd2", "sudo tee /etc/systemd/system/drosera.service > /dev/null <<EOF\n[Unit]\nDescription=drosera node service\n...rest of the multi-line command here...\nEOF", ...],
     "notes": [
       "⚠️ REPLACE 'your_value_here' with your actual value",
       "💡 This command installs required software",
       "📋 Copy and paste each command one at a time",
-      "...other notes from guide"
+      ...other notes from guide
     ],
     "substeps": [
       { 
@@ -61,7 +60,7 @@ B) Troubleshoot Mode (mode: "troubleshoot"):
 {
   "type": "troubleshoot",
   "diagnosis": "<simple, non-technical explanation of what went wrong>",
-  "suggested_commands": ["cmd1","cmd2", "..."],
+  "suggested_commands": ["cmd1","cmd2", ...],
   "explanation": "<beginner-friendly explanation using simple terms, avoiding jargon>",
   "confidence": "high|medium|low",
   "cannot_fix": false
@@ -88,9 +87,11 @@ If outside scope:
 Remember: Stay within the guide's scope, but make everything as beginner-friendly as possible!
 `;
 
+  // --- REFACTORED USER MESSAGE TO BE MORE EXPLICIT ---
   const userMessage = error
     ? `Mode: troubleshoot\nUsername: ${username}\nError while running step (id=${step?.id} title="${step?.title}"):\n\n${error}\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`
     : `Mode: render\nUsername: ${username}\nRequest: Respond with a single, complete JSON object that shows the exact commands & notes for step (id=${step?.id} title="${step?.title}") based on the provided JSON guide object.\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`;
+  // --- END OF REFACTORED PROMPT ---
 
   try {
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -107,7 +108,6 @@ Remember: Stay within the guide's scope, but make everything as beginner-friendl
         ],
         max_tokens: 1000,
         temperature: 0.3,
-        // The crucial change to force JSON output
         response_format: { "type": "json_object" },
       }),
     });
@@ -120,6 +120,7 @@ Remember: Stay within the guide's scope, but make everything as beginner-friendl
 
     const j = await openaiRes.json();
     const raw = j.choices?.[0]?.message?.content ?? '';
+
     
     let parsed;
     try {
