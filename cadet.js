@@ -143,10 +143,9 @@ function renderStep(i) {
   }
 
   // call API for either "proceed" (render) or "submit error" (troubleshoot)
-  async function askAI({ step, username, error, mode }) {
-    const aiEl = mode === "render"
-        ? document.getElementById("stepExplanation")
-        : document.getElementById("aiAnswer");
+ // This function is now ONLY for troubleshooting
+async function askAI({ step, username, error }) {
+    const aiEl = document.getElementById("aiAnswer");
 
     aiEl.style.display = "block";
     aiEl.innerText = "Kermit is thinking…";
@@ -155,7 +154,7 @@ function renderStep(i) {
         const r = await fetch('/api/ask', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mode, username, step, error })
+            body: JSON.stringify({ username, step, error })
         });
 
         const txt = await r.text();
@@ -169,28 +168,13 @@ function renderStep(i) {
         try {
             j = JSON.parse(txt);
         } catch (e) {
-            console.error('Invalid JSON from API:', txt);
+            console.error('Invalid JSON from AI:', txt);
             aiEl.innerText = 'Invalid response from AI';
             return;
         }
 
-        if (j.type === "render") {
-            let htmlContent = `<h4>🔹 ${j.step.title}</h4>`;
-            htmlContent += `<p>${j.step.description || ''}</p>`;
-
-            if (j.step.substeps && j.step.substeps.length > 0) {
-                j.step.substeps.forEach(ss => {
-                    htmlContent += `<h5>👉 ${ss.title}</h5>`;
-                    htmlContent += `<pre>${(ss.commands || []).join('\n')}</pre>`;
-                    if (ss.notes && ss.notes.length > 0) {
-                        htmlContent += `<ul>${ss.notes.map(note => `<li>${note}</li>`).join('')}</ul>`;
-                    }
-                });
-            }
-
-            aiEl.innerHTML = htmlContent;
-
-        } else if (j.type === "troubleshoot") {
+        // This is the ONLY check we need. We no longer handle "render" mode.
+        if (j.type === "troubleshoot") {
             aiEl.innerHTML =
                 `<p><strong>⚠️ Diagnosis:</strong> ${j.diagnosis}</p>` +
                 `<p><strong>Explanation:</strong> ${j.explanation}</p>` +

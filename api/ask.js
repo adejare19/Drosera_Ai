@@ -4,7 +4,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { username, step, error } = req.body || {};
-  if (!process.env.GEMINI_API_KEY) return res.status(500).json({ error: 'Missing GEMINI_API_KEY' });
+  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing API_KEY' });
 
   // The AI's only job is troubleshooting, so we use a prompt specific to that.
   const systemPrompt = `
