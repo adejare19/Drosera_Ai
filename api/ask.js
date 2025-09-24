@@ -7,6 +7,8 @@ export default async function handler(req, res) {
   if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
 
   const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  console.log("Has key?", !!process.env.OPENAI_API_KEY);
+
 
   // The system prompt is now strictly for troubleshooting
   const systemPrompt = `
