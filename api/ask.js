@@ -1,11 +1,12 @@
+
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   const { username, step, error, mode } = req.body || {};
   if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: 'Missing OPENAI_API_KEY' });
 
-  // --- START OF REFACTORED PROMPT ---
-  const systemPrompt = `
+const systemPrompt = `
 You are a friendly Drosera setup assistant designed to help beginners with little Linux experience. Your sole source of truth is the JSON "guide" object the user supplies.
 
 ***Your personality:***
@@ -16,10 +17,9 @@ You are a friendly Drosera setup assistant designed to help beginners with littl
 
 ***Hard rules (must follow exactly):***
 1. NEVER invent new installation steps or commands that are not present in the supplied guide object. Only suggest troubleshooting that is directly relevant to the commands/config in the step object.
-2. When asked to "render" a step or show requirements, output a machine-readable JSON object ONLY (no extra prose). The exact output format must be used so the frontend can parse it. Your response must **only** contain a single JSON object that represents the single step provided.
+2. When asked to "render" a step or show requirements, output a machine-readable JSON object ONLY (no extra prose). The exact output format must be used so the frontend can parse it.
 3. When asked to "troubleshoot" an error, return a machine-readable JSON object ONLY, with fields described below.
 4. Keep responses concise and only include content permitted by the mode (render/troubleshoot). If the answer is outside scope, return the structured "cannot_fix" object.
-5. **DO NOT reference, explain, or provide any information about previous or future steps in the guide. Your response must be scoped exclusively to the provided \`step\` JSON object.**
 
 ***Beginner-friendly enhancements:***
 - In render mode: Include helpful context in the "description" field explaining what the step accomplishes
@@ -86,11 +86,9 @@ If outside scope:
 Remember: Stay within the guide's scope, but make everything as beginner-friendly as possible!
 `;
 
-  // --- REFACTORED USER MESSAGE TO BE MORE EXPLICIT ---
   const userMessage = error
     ? `Mode: troubleshoot\nUsername: ${username}\nError while running step (id=${step?.id} title="${step?.title}"):\n\n${error}\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`
-    : `Mode: render\nUsername: ${username}\nRequest: Respond with a single, complete JSON object that shows the exact commands & notes for step (id=${step?.id} title="${step?.title}") based on the provided JSON guide object.\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`;
-  // --- END OF REFACTORED PROMPT ---
+    : `Mode: render\nUsername: ${username}\nRequest: show the exact commands & notes for step (id=${step?.id} title="${step?.title}")\n\nGuide step JSON:\n${JSON.stringify(step, null, 2)}`;
 
   try {
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -107,7 +105,6 @@ Remember: Stay within the guide's scope, but make everything as beginner-friendl
         ],
         max_tokens: 1000,
         temperature: 0.3,
-        // response_format: { "type": "json_object" },
       }),
     });
 
