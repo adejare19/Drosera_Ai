@@ -65,47 +65,50 @@ const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d'
     }
   }
 
-  function renderStep(i) {
+ function renderStep(i) {
     const s = guide.steps[i];
     if (!s) {
-      document.getElementById('stepTitle').innerText = 'All done';
-      document.getElementById('commandsArea').innerHTML = '<p>Completed all steps.</p>';
-      document.getElementById('stepCounter').innerText = '';
-      return;
+        document.getElementById('stepTitle').innerText = 'All done';
+        document.getElementById('commandsArea').innerHTML = '<p>Completed all steps.</p>';
+        document.getElementById('stepCounter').innerText = '';
+        return;
     }
     document.getElementById('stepTitle').innerText = `Step ${i + 1}: ${s.title}`;
     document.getElementById('stepDesc').innerText = (s.notes || []).join(' • ') || '';
     document.getElementById('stepCounter').innerText = `${i + 1}/${guide.steps.length}`;
 
-    const area = document.getElementById('commandsArea'); 
+    const area = document.getElementById('commandsArea');
     area.innerHTML = '';
-    const commands = s.commands || (s.substeps ? s.substeps.flatMap(ss => ss.commands || []) : []);
-    if (commands.length) {
-      const codeId = 'codeBlock';
-      const wrapper = document.createElement('div');
-      wrapper.style.position = 'relative';
-      wrapper.innerHTML = `<pre id="${codeId}">${commands.join('\n')}</pre>`;
-      const btn = document.createElement('button');
-      btn.className = 'copy-btn';
-      btn.textContent = '📋 Copy';
-      btn.onclick = () => copyCode(codeId);
-      wrapper.appendChild(btn);
-      area.appendChild(wrapper);
-    } else if (s.substeps && s.substeps.length) {
-      s.substeps.forEach((ss, idx) => {
-        const sub = document.createElement('div');
-        sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${(ss.commands || []).join('\n')}</pre>`;
+
+    if (s.substeps && s.substeps.length) {
+        // Render each substep separately
+        s.substeps.forEach((ss, idx) => {
+            const sub = document.createElement('div');
+            sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${(ss.commands || []).join('\n')}</pre>`;
+            const btn = document.createElement('button');
+            btn.className = 'copy-btn';
+            btn.textContent = '📋 Copy';
+            btn.onclick = () => copyCode(`code_${idx}`);
+            sub.style.position = 'relative';
+            sub.appendChild(btn);
+            area.appendChild(sub);
+        });
+    } else if (s.commands && s.commands.length) {
+        // Render a single command block for a step with no substeps
+        const codeId = 'codeBlock';
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        wrapper.innerHTML = `<pre id="${codeId}">${s.commands.join('\n')}</pre>`;
         const btn = document.createElement('button');
-        btn.className = 'copy-btn'; btn.textContent = '📋 Copy';
-        btn.onclick = () => copyCode(`code_${idx}`);
-        sub.style.position = 'relative';
-        sub.appendChild(btn);
-        area.appendChild(sub);
-      });
+        btn.className = 'copy-btn';
+        btn.textContent = '📋 Copy';
+        btn.onclick = () => copyCode(codeId);
+        wrapper.appendChild(btn);
+        area.appendChild(wrapper);
     } else {
-      area.innerHTML = '<p class="small-muted">No commands in this step.</p>';
+        area.innerHTML = '<p class="small-muted">No commands in this step.</p>';
     }
-  }
+}
 
   async function copyCode(id) {
     const text = document.getElementById(id).innerText;
@@ -130,56 +133,66 @@ const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d'
   // call API for either "proceed" (render) or "submit error" (troubleshoot)
   async function askAI({ step, username, error, mode }) {
     const aiEl = mode === "render"
-      ? document.getElementById("stepExplanation")
-      : document.getElementById("aiAnswer");
+        ? document.getElementById("stepExplanation")
+        : document.getElementById("aiAnswer");
 
     aiEl.style.display = "block";
     aiEl.innerText = "Kermit is thinking…";
 
     try {
-      const r = await fetch('/api/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode, username, step, error })
-      });
-
-      const txt = await r.text();
-      if (!r.ok) {
-        console.error(txt);
-        aiEl.innerText = 'Server error: ' + txt;
-        return;
-      }
-
-      let j;
-      try { j = JSON.parse(txt); }
-      catch (e) {
-        console.error('Invalid JSON from API:', txt);
-        aiEl.innerText = 'Invalid response from AI';
-        return;
-      }
-
-      if (j.type === "render") {
-        aiEl.innerText = `🔹 ${j.step.title}\n\n${j.step.description || ''}`;
-        j.step.substeps?.forEach(ss => {
-          aiEl.innerText += `\n\n👉 ${ss.title}\n${(ss.commands || []).join('\n')}`;
+        const r = await fetch('/api/ask', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mode, username, step, error })
         });
-      }
-      else if (j.type === "troubleshoot") {
-        aiEl.innerText =
-          `⚠️ Diagnosis: ${j.diagnosis}\n\n` +
-          `Explanation: ${j.explanation}\n\n` +
-          `Suggested commands:\n${(j.suggested_commands || []).join('\n')}\n\n` +
-          `Confidence: ${j.confidence}` +
-          (j.cannot_fix ? "\n\n❌ This is outside the guide’s scope." : "\n\n✅ Ready to retry this step?");
-      }
-      else {
-        aiEl.innerText = 'Unexpected response: ' + JSON.stringify(j);
-      }
+
+        const txt = await r.text();
+        if (!r.ok) {
+            console.error(txt);
+            aiEl.innerText = 'Server error: ' + txt;
+            return;
+        }
+
+        let j;
+        try {
+            j = JSON.parse(txt);
+        } catch (e) {
+            console.error('Invalid JSON from API:', txt);
+            aiEl.innerText = 'Invalid response from AI';
+            return;
+        }
+
+        if (j.type === "render") {
+            let htmlContent = `<h4>🔹 ${j.step.title}</h4>`;
+            htmlContent += `<p>${j.step.description || ''}</p>`;
+
+            if (j.step.substeps && j.step.substeps.length > 0) {
+                j.step.substeps.forEach(ss => {
+                    htmlContent += `<h5>👉 ${ss.title}</h5>`;
+                    htmlContent += `<pre>${(ss.commands || []).join('\n')}</pre>`;
+                    if (ss.notes && ss.notes.length > 0) {
+                        htmlContent += `<ul>${ss.notes.map(note => `<li>${note}</li>`).join('')}</ul>`;
+                    }
+                });
+            }
+
+            aiEl.innerHTML = htmlContent;
+
+        } else if (j.type === "troubleshoot") {
+            aiEl.innerHTML =
+                `<p><strong>⚠️ Diagnosis:</strong> ${j.diagnosis}</p>` +
+                `<p><strong>Explanation:</strong> ${j.explanation}</p>` +
+                `<p><strong>Suggested commands:</strong></p><pre>${(j.suggested_commands || []).join('\n')}</pre>` +
+                `<p><strong>Confidence:</strong> ${j.confidence}</p>` +
+                (j.cannot_fix ? "<p><strong>❌ This is outside the guide’s scope.</strong></p>" : "<p><strong>✅ Ready to retry this step?</strong></p>");
+        } else {
+            aiEl.innerText = 'Unexpected response: ' + JSON.stringify(j);
+        }
 
     } catch (e) {
-      aiEl.innerText = 'Request failed: ' + e.message;
+        aiEl.innerText = 'Request failed: ' + e.message;
     }
-  }
+}
 
   // proceed button
   document.getElementById('btnProceed').addEventListener('click', async () => {

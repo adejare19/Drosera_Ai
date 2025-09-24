@@ -107,7 +107,7 @@ Remember: Stay within the guide's scope, but make everything as beginner-friendl
         ],
         max_tokens: 1000,
         temperature: 0.3,
-        response_format: { "type": "json_object" },
+        // response_format: { "type": "json_object" },
       }),
     });
 
