@@ -82,22 +82,22 @@ function renderStep(i) {
     const area = document.getElementById('commandsArea');
     area.innerHTML = '';
 
-    // Conditionally render commands or code blocks based on the data
+    // Conditionally render commands, code, or config blocks based on the data
     if (s.substeps && s.substeps.length) {
         s.substeps.forEach((ss, idx) => {
             const sub = document.createElement('div');
-            // If the substep has a `code` block, render that
+            // Check for different data types
+            let content = '';
             if (ss.code) {
-                sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${ss.code}</pre>`;
-            } 
-            // If the substep has a `config` block, render that as a code block
-            else if (ss.config) {
-                 sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${JSON.stringify(ss.config, null, 2)}</pre>`;
-            } 
-            // Otherwise, render the `commands` array
-            else if (ss.commands && ss.commands.length) {
-                sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${ss.commands.join('\n')}</pre>`;
+                content = ss.code;
+            } else if (ss.config) {
+                 content = JSON.stringify(ss.config, null, 2);
+            } else if (ss.commands && ss.commands.length) {
+                content = ss.commands.join('\n');
             }
+            
+            sub.innerHTML = `<strong>${ss.title}</strong><pre id="code_${idx}">${content}</pre>`;
+            
             const btn = document.createElement('button');
             btn.className = 'copy-btn';
             btn.textContent = '📋 Copy';
