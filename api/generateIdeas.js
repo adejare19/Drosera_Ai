@@ -19,6 +19,8 @@ export default async function handler(req, res) {
       {
         role: "system",
         content: `
+        You MUST return only valid JSON — no markdown, no commentary, no code fences. 
+If you cannot follow the rules, return an empty JSON array [].
 You generate EXACTLY 3 distinct Drosera Trap ideas as a strict JSON array (no markdown, no commentary).
 Each idea object MUST have:
 - "title": short name
