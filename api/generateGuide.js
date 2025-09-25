@@ -36,7 +36,7 @@ Guide must:
       }
     ];
 
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    const r = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,8 +44,9 @@ Guide must:
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        temperature: 0.5,
-        max_tokens: 2000,
+        response_format: { type: "json" },
+        temperature: 0.6,
+        max_tokens: 2600,
         messages
       })
     });
