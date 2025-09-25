@@ -1,4 +1,4 @@
-// api/generateIdeas.js
+// This file does NOT require the 'openai' package
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -9,7 +9,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // ✅ make sure this is before we build the prompt
     const { userIdea } = req.body || {};
     if (typeof userIdea !== "string" || !userIdea.trim()) {
       return res.status(400).json({ error: "Missing userIdea" });
@@ -19,15 +18,13 @@ export default async function handler(req, res) {
       {
         role: "system",
         content: `
-        You MUST return only valid JSON — no markdown, no commentary, no code fences. 
-If you cannot follow the rules, return an empty JSON array [].
-You generate EXACTLY 3 distinct Drosera Trap ideas as a strict JSON array (no markdown, no commentary).
+You generate EXACTLY 3 distinct Drosera Trap ideas as a strict JSON array (no markdown, no commentary, no code fences).
 Each idea object MUST have:
 - "title": short name
 - "category": one of ["Protocol-specific","Behavioral","Environment","Access-control","Timing","Economic","Cross-domain"]
 - "summary": 1–2 sentences
 - "solidity_file_name": e.g. "src/MyTrap.sol"
-- "solidity_file": the COMPLETE Solidity source file as a plain string (no markdown fences, no explanations).
+- "solidity_file": the COMPLETE, COMPILABLE Solidity source file as a plain string.
 
 REFERENCE CONTRACT (copy this structure exactly; only change constants and logic to match the idea):
 
@@ -37,32 +34,32 @@ pragma solidity ^0.8.20;
 import "./ITrap.sol";
 
 interface IERC20 {
-    function balanceOf(address account) external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
 }
 
 contract MyTrap is ITrap {
-    address public constant TOKEN = 0x0000000000000000000000000000000000000000;
-    address public constant POOL  = 0x0000000000000000000000000000000000000000;
+    address public constant TOKEN = 0x0000000000000000000000000000000000000000;
+    address public constant POOL  = 0x0000000000000000000000000000000000000000;
 
-    struct CollectOutput {
-        uint256 tokenBalance;
-    }
+    struct CollectOutput {
+        uint256 tokenBalance;
+    }
 
-    constructor() {}
+    constructor() {}
 
-    function collect() external view override returns (bytes memory) {
-        uint256 bal = IERC20(TOKEN).balanceOf(POOL);
-        return abi.encode(CollectOutput({tokenBalance: bal}));
-    }
+    function collect() external view override returns (bytes memory) {
+        uint256 bal = IERC20(TOKEN).balanceOf(POOL);
+        return abi.encode(CollectOutput({tokenBalance: bal}));
+    }
 
-    function shouldRespond(bytes[] calldata data) external pure override returns (bool, bytes memory) {
-        CollectOutput memory current = abi.decode(data[0], (CollectOutput));
-        CollectOutput memory past = abi.decode(data[data.length - 1], (CollectOutput));
-        if (past.tokenBalance == 0) return (false, bytes(""));
-        uint256 drop = ((past.tokenBalance - current.tokenBalance) * 1e18) / past.tokenBalance;
-        if (drop > 1e17) return (true, bytes(""));
-        return (false, bytes(""));
-    }
+    function shouldRespond(bytes[] calldata data) external pure override returns (bool, bytes memory) {
+        CollectOutput memory current = abi.decode(data[0], (CollectOutput));
+        CollectOutput memory past = abi.decode(data[data.length - 1], (CollectOutput));
+        if (past.tokenBalance == 0) return (false, bytes(""));
+        uint256 drop = ((past.tokenBalance - current.tokenBalance) * 1e18) / past.tokenBalance;
+        if (drop > 1e17) return (true, bytes(""));
+        return (false, bytes(""));
+    }
 }
 
 HARD RULES:
@@ -90,7 +87,7 @@ HARD RULES:
       body: JSON.stringify({
         model: "gpt-4o-mini",
         temperature: 0.5,
-        max_tokens: 2400,
+        max_tokens: 2800,
         messages
       })
     });

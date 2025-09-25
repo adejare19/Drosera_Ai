@@ -2,214 +2,240 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Drosera PoC Generator</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
-  <style>
-    html,
-    body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      background: #0d0d0d;
-      color: #fff;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Drosera PoC Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #0d0d0d;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
 
-    #bgCanvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      z-index: 0;
-    }
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
 
-    .step-card {
-      z-index: 1;
-      background: rgba(24, 24, 24, 0.85);
-      padding: 40px;
-      border-radius: 20px;
-      text-align: center;
-      position: relative;
-      max-width: 600px;
-      width: 95%;
-      margin: auto;
-    }
+        .step-card {
+            z-index: 1;
+            background: rgba(24, 24, 24, 0.85);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            position: relative;
+            max-width: 600px;
+            width: 95%;
+            margin: auto;
+        }
 
-    .btn-true {
-      background: #ff6600;
-      color: #fff;
-      font-weight: bold;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 30px;
-      transition: all 0.3s ease-in-out;
-      white-space: pre-wrap;
-    }
+        .btn-true {
+            background: #ff6600;
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            transition: all 0.3s ease-in-out;
+            white-space: pre-wrap;
+        }
 
-    .btn-false {
-      background: #8e44ad;
-      color: #fff;
-      font-weight: bold;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 30px;
-      transition: all 0.3s ease-in-out;
-    }
+        .btn-false {
+            background: #8e44ad;
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            transition: all 0.3s ease-in-out;
+        }
 
-    pre {
-      text-align: left;
-    }
+        pre {
+            text-align: left;
+        }
 
-    @media (max-width: 768px) {
-      .d-flex {
-        flex-direction: column !important;
-      }
-    }
-  </style>
+        @media (max-width: 768px) {
+            .d-flex {
+                flex-direction: column !important;
+            }
+        }
+    </style>
 </head>
 
 <body>
-  <canvas id="bgCanvas"></canvas>
+    <canvas id="bgCanvas"></canvas>
 
-  <div class="d-flex align-items-center justify-content-center vh-100">
-    <div class="step-card">
+    <div class="d-flex align-items-center justify-content-center vh-100">
+        <div class="step-card">
 
-      <!-- Start step -->
-      <div id="step-start" class="text-center">
-        <h2 class="mb-3">Drosera PoC Generator</h2>
-        <p class="text-light">Do you already have a PoC idea, or would you like AI to suggest one?</p>
-        <div class="d-flex justify-content-center gap-3">
-          <button class="btn-false" onclick="showStep('idea')">I have an idea</button>
-          <button class="btn-true" onclick="showStep('generate')">Suggest Ideas</button>
+            <div id="step-start" class="text-center">
+                <h2 class="mb-3">Drosera PoC Generator</h2>
+                <p class="text-light">Do you already have a PoC idea, or would you like AI to suggest one?</p>
+                <div class="d-flex justify-content-center gap-3">
+                    <button class="btn-false" onclick="showStep('idea')">I have an idea</button>
+                    <button class="btn-true" onclick="showStep('generate')">Suggest Ideas</button>
+                </div>
+            </div>
+
+            <div id="step-idea" class="d-none">
+                <h4 class="mb-3">Enter your PoC Idea</h4>
+                <textarea id="userIdea" class="form-control mb-3" rows="4" placeholder="Describe your PoC idea"></textarea>
+                <button class="btn btn-warning w-100" onclick="generateRepo()">Generate Repo</button>
+            </div>
+
+            <div id="step-generate" class="d-none">
+                <h4 class="mb-3">AI-Generated Ideas</h4>
+                <div id="idea-options" class="d-flex flex-column mb-3 text-light"></div>
+            </div>
+
         </div>
-      </div>
-
-      <!-- Manual idea step -->
-      <div id="step-idea" class="d-none">
-        <h4 class="mb-3">Enter your PoC Idea</h4>
-        <textarea id="userIdea" class="form-control mb-3" rows="4" placeholder="Describe your PoC idea"></textarea>
-        <button class="btn btn-warning w-100" onclick="generateRepo()">Generate Repo</button>
-      </div>
-
-      <!-- AI ideas step -->
-      <div id="step-generate" class="d-none">
-        <h4 class="mb-3">AI-Generated Ideas</h4>
-        <div id="idea-options" class="d-flex flex-column mb-3 text-light"></div>
-      </div>
-
     </div>
-  </div>
 
-  <script>
-    async function showStep(step) {
-      document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
-      document.getElementById('step-' + step).classList.remove('d-none');
+    <script>
+        // Background Canvas Animation
+        const canvas = document.getElementById('bgCanvas'),
+            ctx = canvas.getContext('2d');
 
-      if (step === 'generate') {
-        await fetchIdeas();
-      }
-    }
-
-    async function fetchIdeas() {
-      const container = document.getElementById('idea-options');
-      container.innerHTML = "<p class='text-info'>⚡ Generating ideas...</p>";
-
-      try {
-        const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
-
-        const res = await fetch('/api/generateIdeas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userIdea })
+        function resetCanvas() {
+            canvas.width = innerWidth;
+            canvas.height = innerHeight;
+        }
+        window.addEventListener('resize', () => {
+            resetCanvas();
+            initParticles();
         });
+        resetCanvas();
 
-        const data = await res.json();
-
-        if (data.error) {
-          container.innerHTML = `<p class='text-danger'>${data.error}</p>`;
-          console.error("Backend error:", data.raw || data.error);
-          return;
+        let particles = [];
+        class Particle {
+            constructor(x, y, s, sx, sy) {
+                Object.assign(this, {
+                    x,
+                    y,
+                    size: s,
+                    sx,
+                    sy
+                });
+            }
+            update() {
+                this.x += this.sx;
+                this.y += this.sy;
+                if (this.x < 0 || this.x > canvas.width) this.sx *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.sy *= -1;
+            }
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,102,0,0.7)';
+                ctx.fill();
+            }
         }
 
-        if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
-          container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
-          return;
+        function initParticles() {
+            particles = [];
+            for (let i = 0; i < 50; i++) {
+                particles.push(new Particle(
+                    Math.random() * canvas.width,
+                    Math.random() * canvas.height,
+                    Math.random() * 3 + 2,
+                    (Math.random() - 0.5) * 2,
+                    (Math.random() - 0.5) * 2
+                ));
+            }
         }
 
-        container.innerHTML = "";
-
-        data.ideas.forEach((idea) => {
-          const btn = document.createElement("button");
-          btn.className = "btn-true mb-2 text-start";
-          btn.innerHTML = `<strong>${idea.title}</strong> <span class="text-muted">[${idea.category}]</span>\n${idea.summary}`;
-          btn.onclick = () => generateRepo(idea);
-          container.appendChild(btn);
-        });
-      } catch (err) {
-        container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
-        console.error(err);
-      }
-    }
-
-    function generateRepo(idea) {
-      const ideaText = (idea && idea.title) || document.getElementById('userIdea').value.trim();
-      if (!ideaText) {
-        alert("Please enter or select an idea first!");
-        return;
-      }
-      window.location.href = `setup.html?idea=${encodeURIComponent(ideaText)}`;
-    }
-
-    // ---- Background Canvas Animation ----
-    const canvas = document.getElementById('bgCanvas'), ctx = canvas.getContext('2d');
-    function resetCanvas() { canvas.width = innerWidth; canvas.height = innerHeight; }
-    window.addEventListener('resize', () => { resetCanvas(); initParticles(); });
-    resetCanvas();
-
-    let particles = [];
-    class Particle {
-      constructor(x, y, s, sx, sy) { Object.assign(this, { x, y, size: s, sx, sy }); }
-      update() { this.x += this.sx; this.y += this.sy; if (this.x < 0 || this.x > canvas.width) this.sx *= -1; if (this.y < 0 || this.y > canvas.height) this.sy *= -1; }
-      draw() { ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fillStyle = 'rgba(255,102,0,0.7)'; ctx.fill(); }
-    }
-    function initParticles() {
-      particles = [];
-      for (let i = 0; i < 50; i++) {
-        particles.push(new Particle(
-          Math.random() * canvas.width,
-          Math.random() * canvas.height,
-          Math.random() * 3 + 2,
-          (Math.random() - 0.5) * 2,
-          (Math.random() - 0.5) * 2
-        ));
-      }
-    }
-    function animate() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      particles.forEach(p => { p.update(); p.draw(); });
-      for (let a = 0; a < particles.length; a++) {
-        for (let b = a; b < particles.length; b++) {
-          const dx = particles[a].x - particles[b].x,
-            dy = particles[a].y - particles[b].y,
-            d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 120) {
-            ctx.beginPath();
-            ctx.strokeStyle = 'rgba(255,102,0,0.12)';
-            ctx.moveTo(particles[a].x, particles[a].y);
-            ctx.lineTo(particles[b].x, particles[b].y);
-            ctx.stroke();
-          }
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            for (let a = 0; a < particles.length; a++) {
+                for (let b = a; b < particles.length; b++) {
+                    const dx = particles[a].x - particles[b].x,
+                        dy = particles[a].y - particles[b].y,
+                        d = Math.sqrt(dx * dx + dy * dy);
+                    if (d < 120) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = 'rgba(255,102,0,0.12)';
+                        ctx.moveTo(particles[a].x, particles[a].y);
+                        ctx.lineTo(particles[b].x, particles[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+            requestAnimationFrame(animate);
         }
-      }
-      requestAnimationFrame(animate);
-    }
-    initParticles();
-    animate();
-  </script>
+        initParticles();
+        animate();
+
+        async function showStep(step) {
+            document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
+            document.getElementById('step-' + step).classList.remove('d-none');
+            if (step === 'generate') {
+                await fetchIdeas();
+            }
+        }
+
+        async function fetchIdeas() {
+            const container = document.getElementById('idea-options');
+            container.innerHTML = "<p class='text-info'>⚡ Generating ideas...</p>";
+            try {
+                const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
+                const res = await fetch('/api/generateIdeas', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userIdea })
+                });
+                const data = await res.json();
+                if (data.error) {
+                    container.innerHTML = `<p class='text-danger'>${data.error}</p>`;
+                    console.error("Backend error:", data.raw || data.error);
+                    return;
+                }
+                if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
+                    container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
+                    return;
+                }
+                container.innerHTML = "";
+                data.ideas.forEach((idea) => {
+                    const btn = document.createElement("button");
+                    btn.className = "btn-true mb-2 text-start";
+                    btn.innerHTML = `<strong>${idea.title}</strong> <span class="text-muted">[${idea.category}]</span>\n${idea.summary}`;
+                    btn.onclick = () => generateRepo(idea);
+                    container.appendChild(btn);
+                });
+            } catch (err) {
+                container.innerHTML = "<p class='text-danger'>Error fetching ideas.</p>";
+                console.error(err);
+            }
+        }
+
+        function generateRepo(idea) {
+            if (idea) {
+                // ✅ This is the critical change: store the entire idea object
+                localStorage.setItem("selectedIdea", JSON.stringify(idea));
+                window.location.href = "setup.html";
+            } else {
+                const userIdea = document.getElementById('userIdea').value.trim();
+                if (!userIdea) {
+                    alert("Please enter an idea first!");
+                    return;
+                }
+                // When there's no idea object, we pass the text as a query string
+                localStorage.removeItem("selectedIdea"); // Clear previous AI idea
+                window.location.href = `setup.html?idea=${encodeURIComponent(userIdea)}`;
+            }
+        }
+    </script>
 </body>
+
 </html>
