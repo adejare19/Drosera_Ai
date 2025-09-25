@@ -74,19 +74,39 @@ ${solidity_file}
     });
 
     const data = await r.json();
-    const raw = data.choices?.[0]?.message?.content || "{}";
+    let raw = data.choices?.[0]?.message?.content || "{}";
 
-    const cleanedRaw = raw.replace(/```json/g, "").replace(/```/g, "").trim();
+    // 🛡️ Enhanced sanitation to remove common formatting issues
+    raw = raw
+      .replace(/```json/g, "")
+      .replace(/```/g, "")
+      .trim();
 
+    // 🛡️ Robust JSON parsing with a final fallback
     let guide;
     try {
-      guide = JSON.parse(cleanedRaw);
-      if (!guide?.steps || !Array.isArray(guide.steps)) {
-        throw new Error("Missing steps[]");
-      }
+      guide = JSON.parse(raw);
     } catch (err) {
-      console.error("Invalid AI JSON (guide):", err, raw);
-      return res.status(500).json({ error: "Invalid AI JSON", raw });
+      console.error("Attempting to fix malformed JSON:", raw);
+      // Fallback: Use regex to find and extract the first JSON object
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      if (jsonMatch && jsonMatch[0]) {
+        try {
+          guide = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          console.error("Failed to parse fallback JSON:", e);
+          return res.status(500).json({ error: "Invalid AI JSON output", raw });
+        }
+      } else {
+        console.error("No JSON object found in raw output.");
+        return res.status(500).json({ error: "Invalid AI JSON output", raw });
+      }
+    }
+
+    // 💥 The final, crucial validation step
+    if (!guide?.steps || !Array.isArray(guide.steps)) {
+      console.error("Parsed object is missing 'steps' array.", guide);
+      return res.status(500).json({ error: "Invalid guide structure" });
     }
 
     return res.status(200).json({ guide });
