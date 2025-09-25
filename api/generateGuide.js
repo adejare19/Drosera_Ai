@@ -1,6 +1,6 @@
-// api/generateGuide.js
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  if (!process.env.OPENAI_API_KEY) return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
 
   try {
     const { idea } = req.body || {};
@@ -9,28 +9,30 @@ export default async function handler(req, res) {
     const messages = [
       {
         role: "system",
-        content:
-`You output ONLY a JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}
-No markdown fences. Keep it concise, deterministic.
-The guide MUST:
-1) Init Foundry project (forge init).
-2) Add a minimal ITrap + IERC20 inline or explain they already exist—BUT include final file content for the Trap in a single file (e.g., src/MyTrap.sol).
-3) Write the Trap file content (complete, compilable).
-4) Configure foundry.toml minimally if needed.
-5) Build and (optionally) show a minimal test that decodes the bytes and asserts structure.
-Rules for the Trap:
-- pragma solidity ^0.8.20;
-- interface ITrap { collect() external view returns (bytes memory); shouldRespond(bytes[] calldata) external pure returns (bool, bytes memory); }
-- constructor() NO args, initialize constants/thresholds.
-- collect(): view, return abi.encode(CollectOutput{...});
-- shouldRespond(): pure, decode data[0] and data[data.length-1], do a simple threshold comparison, return (true/false, bytes("")).
-- No responder functions. No external libraries.
-- Keep addresses/thresholds hardcoded constants.`
+        content: `You output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}
+No markdown, no commentary.
+
+Goal: a concise Foundry setup guide for a single Drosera Trap (Trap-only).
+
+Trap HARD RULES:
+- One file (e.g. src/MyTrap.sol), pragma solidity ^0.8.20;
+- Implements exactly: collect() external view returns (bytes memory); shouldRespond(bytes[] calldata) external pure returns (bool, bytes memory);
+- Constructor: NO args; hardcode constants/thresholds.
+- Define struct CollectOutput; collect() returns abi.encode(CollectOutput(...)).
+- shouldRespond(): decode data[0] latest, data[data.length-1] oldest; deterministic threshold check.
+- No external libs; only import "./ITrap.sol"; and inline IERC20 if needed.
+- No responders.
+
+Guide must:
+1) Init Foundry project (forge init)
+2) Create src/MyTrap.sol (include full code in "code")
+3) (Optional) edit foundry.toml if needed
+4) Build/test commands
+5) Mention ITrap.sol placement.`
       },
       {
         role: "user",
-        content:
-`Create a step-by-step Foundry setup guide for trap idea: "${idea}". Output ONLY the JSON object with steps.`
+        content: `Create the step-by-step guide for the trap idea: "${idea}".`
       }
     ];
 
@@ -38,14 +40,14 @@ Rules for the Trap:
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
         temperature: 0.5,
-        max_tokens: 1600,
+        max_tokens: 2000,
         messages
-      }),
+      })
     });
 
     const data = await r.json();
@@ -55,7 +57,7 @@ Rules for the Trap:
     let guide;
     try {
       guide = JSON.parse(raw);
-      if (!guide.steps || !Array.isArray(guide.steps)) throw new Error("Missing steps[]");
+      if (!guide?.steps || !Array.isArray(guide.steps)) throw new Error("Missing steps[]");
     } catch (err) {
       console.error("Invalid AI JSON (guide):", err, raw);
       return res.status(500).json({ error: "Invalid AI JSON", raw });
