@@ -67,7 +67,7 @@ Trap HARD RULES: [NO CHANGES TO YOUR TRAP LOGIC RULES]
 Guide must contain these exact steps in order, using the actual code we discussed:
 1) Init Foundry project (forge init)
 2) Create src/MyTrap.sol (include the FULL contract in "code")
-3) Mention ITrap.sol placement (e.g. symlinking ITrap.sol)
+3) **ITrap.sol Placement** (Crucial). Mention that the ITrap.sol file is automatically included when using the Drosera Foundry template, but verify it exists in the 'src' directory.
 4) **Create the drosera.toml configuration file.** The code block for this step **must** contain the following exact TOML structure, substituting 'my_trap' with a concise, derived name:
 
 ethereum_rpc = "https://ethereum-hoodi-rpc.publicnode.com"

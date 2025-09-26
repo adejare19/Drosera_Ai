@@ -92,7 +92,7 @@ HARD RULES:
       })
     });
 
-    const data = await response.json();
+   const data = await response.json();
     let raw = data.choices?.[0]?.message?.content || "[]";
 
     // 🛡️ strip accidental code fences
@@ -100,23 +100,58 @@ HARD RULES:
 
     let ideas;
     try {
-      ideas = JSON.parse(raw);
-      if (!Array.isArray(ideas) || ideas.length !== 3) {
-        throw new Error("Expected a JSON array with exactly 3 ideas");
-      }
-      for (const it of ideas) {
-        if (!it.title || !it.solidity_file_name || !it.solidity_file) {
-          throw new Error("Idea missing required fields");
-        }
-      }
+        // --- 1. Attempt Standard Parse ---
+        ideas = JSON.parse(raw);
     } catch (err) {
-      console.error("Invalid AI JSON (ideas):", err, raw);
-      return res.status(500).json({ error: "Invalid AI JSON output", raw });
+        console.error("Initial JSON parse failed. Attempting robust fix:", err);
+
+        // --- 2. Fallback: Use regex to extract the JSON Array ---
+        // The AI output might contain commentary before or after the actual JSON.
+        const jsonMatch = raw.match(/\[[\s\S]*\]/); 
+
+        if (jsonMatch && jsonMatch[0]) {
+            let fixedRaw = jsonMatch[0];
+            
+            // --- 3. Fallback: Try fixing common issues within the extracted array ---
+            // Often, single quotes or unescaped characters within the Solidity code break the JSON.
+            try {
+                // Remove potential non-JSON compliant characters (e.g., control characters)
+                fixedRaw = fixedRaw.replace(/[\u0000-\u001f]/g, ''); 
+                
+                ideas = JSON.parse(fixedRaw);
+            } catch (e) {
+                console.error("Failed to parse regex-extracted JSON.", e);
+                // If all else fails, log the problem data and throw.
+                return res.status(500).json({ 
+                    error: "Invalid AI JSON output after all fixes.", 
+                    details: e.message, 
+                    raw: fixedRaw 
+                });
+            }
+        } else {
+            console.error("No JSON array found in raw output after initial failure.");
+            return res.status(500).json({ error: "Invalid AI JSON output: No array detected.", raw });
+        }
+    }
+
+    // --- Final Validation (Moved outside the primary parsing try/catch) ---
+    try {
+        if (!Array.isArray(ideas) || ideas.length !== 3) {
+            throw new Error(`Expected a JSON array with exactly 3 ideas, but received ${ideas?.length || 0}.`);
+        }
+        for (const it of ideas) {
+            if (!it.title || !it.solidity_file_name || !it.solidity_file) {
+                throw new Error("Idea missing required fields");
+            }
+        }
+    } catch (err) {
+        console.error("Invalid AI JSON (ideas structure):", err, ideas);
+        return res.status(500).json({ error: err.message, raw: ideas });
     }
 
     return res.status(200).json({ ideas });
-  } catch (err) {
+} catch (err) {
     console.error("Error generating ideas:", err);
     return res.status(500).json({ error: "Failed to generate ideas" });
-  }
+}
 }
