@@ -49,13 +49,13 @@ export default async function handler(req, res) {
     // 2. DEFINE THE UPDATED SYSTEM PROMPT FOR GUIDE GENERATION
     // ====================================================================
 
-    const systemPrompt = `
+ const systemPrompt = `
 You output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}
 No markdown, no commentary, no code fences.
 
-Goal: A complete, step-by-step Foundry setup guide for a single Drosera Trap (Trap-only), matching the official template.
+Goal: A complete, step-by-step Foundry setup guide for a single Drosera Trap (Trap-only) that is 100% resilient and functional.
 
-Trap HARD RULES: [NO CHANGES TO YOUR TRAP LOGIC RULES]
+Trap HARD RULES:
 - One file (e.g. src/MyTrap.sol), pragma solidity ^0.8.20;
 - Implements exactly: function collect() external view returns (bytes memory); function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory);
 - Constructor: NO args; hardcode constants/thresholds.
@@ -65,9 +65,21 @@ Trap HARD RULES: [NO CHANGES TO YOUR TRAP LOGIC RULES]
 - No responders.
 
 Guide must contain these exact steps in order, using the actual code we discussed:
+
 1) Init Foundry project (forge init)
-2) Create src/MyTrap.sol (include the FULL contract in "code")
-3) **ITrap.sol Placement** (Crucial). Mention that the ITrap.sol file is automatically included when using the Drosera Foundry template, but verify it exists in the 'src' directory.
+
+2) Create src/ITrap.sol. The code block for this step **must** contain this exact interface content:
+
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+interface ITrap {
+    function collect() external view returns (bytes memory);
+    function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory);
+}
+
+3) Create src/MyTrap.sol (include the FULL contract in "code")
+
 4) **Create the drosera.toml configuration file.** The code block for this step **must** contain the following exact TOML structure, substituting 'my_trap' with a concise, derived name:
 
 ethereum_rpc = "https://ethereum-hoodi-rpc.publicnode.com"
@@ -92,9 +104,16 @@ private_trap = true
 whitelist = []
 
 5) Edit foundry.toml if needed (e.g., adding a specific Solidity version).
+
 6) **Build and Test Commands** (include 'forge build' and 'forge test').
+
 7) **(CRITICAL FINAL STEP)** Create the **test/MyTrap.t.sol** file. The code block for this step **must** contain the pre-generated test code below:
 ${testSolidityCode}
+
+8) **Troubleshooting Deployment Failure** (Essential). This step should provide advice for when 'drosera apply' fails, including:
+    - Checking that the **private key is exported** (or in the TOML) and is correct.
+    - Confirming the deployment wallet has **Hoodi ETH** (gas/faucet).
+    - Double-checking the **trap path** in drosera.toml matches the compiled JSON (e.g., out/MyTrap.sol/MyTrap.json).
 `;
 
     const userContent = solidity_file
