@@ -5,9 +5,18 @@ export default async function handler(req, res) {
   if (!process.env.OPENAI_API_KEY) {
     return res.status(500).json({ error: "Missing OPENAI_API_KEY" });
   }
-  // Assume NEXT_PUBLIC_API_URL is set in your environment (e.g., http://localhost:3000)
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || req.headers.host;
-  const testApiUrl = `${req.headers['x-forwarded-proto'] || 'http'}://${baseUrl}/api/generateTest`;
+let baseUrl;
+
+if (process.env.NEXT_PUBLIC_API_URL) {
+  // Assume it's a full URL like "https://myapp.com"
+  baseUrl = process.env.NEXT_PUBLIC_API_URL;
+} else {
+  const protocol = req?.headers?.['x-forwarded-proto'] || 'http';
+  const host = req?.headers?.host || 'localhost:3000';
+  baseUrl = `${protocol}://${host}`;
+}
+
+const testApiUrl = `${baseUrl}/api/generateTest`;
 
   try {
     const { idea, title, summary, solidity_file } = req.body || {};
