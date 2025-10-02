@@ -49,27 +49,54 @@ export default async function handler(req, res) {
     // 2. DEFINE THE UPDATED SYSTEM PROMPT FOR GUIDE GENERATION
     // ====================================================================
 
- const systemPrompt = `
-You output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}
-No markdown, no commentary, no code fences.
+const systemPrompt = `
+**STRICT OUTPUT RULE:** You MUST output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}. DO NOT INCLUDE ANY MARKDOWN FENCES (e.g., \`\`\`json), COMMENTARY, OR TEXT OUTSIDE THE JSON OBJECT.
 
-Goal: A complete, step-by-step Foundry setup guide for a single Drosera Trap (Trap-only) that is 100% resilient and functional.
+Goal: A complete, 10-step, deployment-ready guide for a single Drosera Trap.
 
 Trap HARD RULES:
-- One file (e.g. src/MyTrap.sol), pragma solidity ^0.8.20;
-- Implements exactly: function collect() external view returns (bytes memory); function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory);
-- Constructor: NO args; hardcode constants/thresholds.
-- Define struct CollectOutput; collect() returns abi.encode(CollectOutput(...)).
-- shouldRespond(): decode data[0] latest, data[data.length-1] oldest; deterministic threshold check.
-- No external libs; only import "./ITrap.sol"; inline IERC20 if needed.
-- No responders.
+- Trap contract name: MUST be derived from the idea, e.g., 'LiquidityPoolMonitoringTrap'.
+- Trap implements: collect() and shouldRespond().
+- Responder contract: MUST be named SimpleResponder and use respondCallback(uint256).
 
-Guide must contain these exact steps in order, using the actual code we discussed:
+Guide must contain these exact 10 steps in the following order:
 
-1) Init Foundry project (forge init)
+1) Initialize the Project Directory and Foundry Workspace (Use mkdir/cd/forge init commands).
+2) Create src/SimpleResponder.sol (Provide the Responder code block).
+3) Build the contracts (forge build).
+4) Deploy the Responder Contract (Description MUST explain how to run 'forge create' and CAPTURE the address).
+5) Create src/ITrap.sol (Provide the ITrap interface code block).
+6) Create src/{{TrapName}}.sol (Provide the FULL Trap code block).
+7) **Create the drosera.toml configuration file.** (The description MUST instruct the user to paste the address captured in Step 4 into the 'response_contract' field).
+8) Edit foundry.toml if needed.
+9) Build and Test Commands (Include 'forge test' and the final 'drosera apply').
+10) Create the test/{{TrapName}}.t.sol file (Provide the pre-generated test code block: ${testSolidityCode}).
 
-2) Create src/ITrap.sol. The code block for this step **must** contain this exact interface content:
+---
 
+// The following blocks must be used for the code properties:
+
+// Step 1 Code Block (MUST use the name derived from the idea, e.g., LiquidityPoolTrap):
+\`\`\`bash
+mkdir {{DerivedProjectName}}
+cd {{DerivedProjectName}}
+forge init
+\`\`\`
+
+// Step 2 Code Block (SimpleResponder):
+\`\`\`solidity
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+contract SimpleResponder {
+    function respondCallback(uint256 amount) public {
+        // PoC: The Trap triggered, the Responder was called.
+    }
+}
+\`\`\`
+
+// Step 5 Code Block (ITrap.sol):
+\`\`\`solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
@@ -77,10 +104,12 @@ interface ITrap {
     function collect() external view returns (bytes memory);
     function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory);
 }
+\`\`\`
 
-3) Create src/MyTrap.sol (include the FULL contract in "code")
-
-4) **Create the drosera.toml configuration file.** The code block for this step **must** contain the following exact TOML structure, substituting 'my_trap' with a concise, derived name:
+// Step 7 Code Block (drosera.toml):
+// The AI MUST substitute the [traps.key] and the path field using the name it generated for the trap.
+// Example: If the trap name is LiquidityPoolMonitoringTrap, the path is "out/LiquidityPoolMonitoringTrap.sol/LiquidityPoolMonitoringTrap.json"
+// The response_contract field MUST be set to "[PASTE_DEPLOYED_RESPONDER_ADDRESS_HERE]".
 
 ethereum_rpc = "https://ethereum-hoodi-rpc.publicnode.com"
 drosera_rpc = "https://relay.hoodi.drosera.io"
@@ -89,13 +118,10 @@ drosera_address = "0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D"
 
 [traps]
 
-[traps.my_trap]
-# The path to your compiled contract's JSON file
-path = "out/MyTrap.sol/MyTrap.json"
-# Replace with the address of your response contract
-response_contract = "0xRESPONSE_CONTRACT_ADDRESS_GOES_HERE"
-# Replace with the function signature of your response contract
-response_function = "responseCallback(uint256)" 
+[traps.{{derived_trap_key}}]
+path = "out/{{TrapName}}.sol/{{TrapName}}.json"
+response_contract = "[PASTE_DEPLOYED_RESPONDER_ADDRESS_HERE]" 
+response_function = "respondCallback(uint256)" 
 cooldown_period_blocks = 33
 min_number_of_operators = 1
 max_number_of_operators = 2
@@ -103,17 +129,8 @@ block_sample_size = 10
 private_trap = true
 whitelist = []
 
-5) Edit foundry.toml if needed (e.g., adding a specific Solidity version).
-
-6) **Build and Test Commands** (include 'forge build' and 'forge test').
-
-7) **(CRITICAL FINAL STEP)** Create the **test/MyTrap.t.sol** file. The code block for this step **must** contain the pre-generated test code below:
-${testSolidityCode}
-
-8) **Troubleshooting Deployment Failure** (Essential). This step should provide advice for when 'drosera apply' fails, including:
-    - Checking that the **private key is exported** (or in the TOML) and is correct.
-    - Confirming the deployment wallet has **Hoodi ETH** (gas/faucet).
-    - Double-checking the **trap path** in drosera.toml matches the compiled JSON (e.g., out/MyTrap.sol/MyTrap.json).
+// The code block for Step 6 must contain the full Trap contract code generated based on the idea.
+// The code block for Step 10 must contain the pre-generated test code provided in the prompt.
 `;
 
     const userContent = solidity_file
