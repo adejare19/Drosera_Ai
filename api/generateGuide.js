@@ -50,65 +50,75 @@ export default async function handler(req, res) {
     // ====================================================================
 
 const systemPrompt = `
-**STRICT OUTPUT RULE:** You MUST output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}. DO NOT INCLUDE ANY MARKDOWN FENCES (e.g., \`\`\`json), COMMENTARY, OR TEXT OUTSIDE THE JSON OBJECT.
+**STRICT OUTPUT RULE:** You MUST output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}. DO NOT INCLUDE ANY MARKDOWN FENCES, COMMENTARY, OR TEXT OUTSIDE THE JSON OBJECT.
 
-Goal: A complete, 10-step, deployment-ready guide for a single Drosera Trap.
+Goal: A complete, self-contained, 12-step guide for a user on a fresh VPS to deploy a full Drosera Trap project (Trap + Responder + Documentation).
 
 Trap HARD RULES:
 - Trap contract name: MUST be derived from the idea, e.g., 'LiquidityPoolMonitoringTrap'.
-- Trap implements: collect() and shouldRespond().
+- Trap code MUST use the official import: import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
 - Responder contract: MUST be named SimpleResponder and use respondCallback(uint256).
+- All Solidity code MUST use pragma solidity ^0.8.20.
 
-Guide must contain these exact 10 steps in the following order:
+Guide must contain these exact 12 steps in the following order:
 
-1) Initialize the Project Directory and Foundry Workspace (Use mkdir/cd/forge init commands).
-2) Create src/SimpleResponder.sol (Provide the Responder code block).
-3) Build the contracts (forge build).
-4) Deploy the Responder Contract (Description MUST explain how to run 'forge create' and CAPTURE the address).
-5) Create src/ITrap.sol (Provide the ITrap interface code block).
-6) Create src/{{TrapName}}.sol (Provide the FULL Trap code block).
-7) **Create the drosera.toml configuration file.** (The description MUST instruct the user to paste the address captured in Step 4 into the 'response_contract' field).
-8) Edit foundry.toml if needed.
-9) Build and Test Commands (Include 'forge test' and the final 'drosera apply').
-10) Create the test/{{TrapName}}.t.sol file (Provide the pre-generated test code block: ${testSolidityCode}).
+1) **Install All Prerequisites (Drosera CLI, Foundry CLI, Bun).** (This is a single step containing all installation commands).
+2) Initialize the Project Directory and Foundry Workspace (Use mkdir/cd/forge init commands).
+3) **Install Drosera Dependency.** (Use the forge install command for 'drosera-contracts').
+4) Create src/SimpleResponder.sol (Provide the Responder code block).
+5) Build the contracts (forge build).
+6) **Deploy the Responder Contract.** (Description MUST explain how to run 'forge create' and CAPTURE the address).
+7) Create src/{{TrapName}}.sol (Provide the FULL Trap code block, including the official import).
+8) **Create the drosera.toml configuration file.** (The description MUST instruct the user to paste the address captured in Step 6 into the 'response_contract' field).
+9) Edit foundry.toml (for solc version and lib paths if necessary).
+10) Build and Test Commands (Include 'forge test' and the final 'drosera apply').
+11) Create the test/{{TrapName}}.t.sol file (Provide the pre-generated test code block: \${testSolidityCode}).
+12) **Create the README.md file.** (Provide the full ReadMe content for this specific trap).
 
 ---
 
-// The following blocks must be used for the code properties:
+// The following blocks MUST be used for the 'code' properties:
 
-// Step 1 Code Block (MUST use the name derived from the idea, e.g., LiquidityPoolTrap):
-\`\`\`bash
+// Step 1 Code Block (Installation):
+cd ~
+# Drosera CLI
+curl -L https://app.drosera.io/install | bash
+source ~/.bashrc
+droseraup
+
+# Foundry CLI (Solidity development)
+curl -L https://foundry.paradigm.xyz | bash
+source ~/.bashrc
+foundryup
+
+# Bun (JavaScript runtime - required for some Drosera tools)
+curl -fsSL https://bun.sh/install | bash
+source ~/.bashrc
+
+// Step 2 Code Block (MUST use the name derived from the idea, e.g., LiquidityPoolTrap):
 mkdir {{DerivedProjectName}}
 cd {{DerivedProjectName}}
 forge init
-\`\`\`
 
-// Step 2 Code Block (SimpleResponder):
-\`\`\`solidity
+// Step 3 Code Block (Drosera Install):
+forge install drosera-network/drosera-contracts
+
+// Step 4 Code Block (SimpleResponder):
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.20;
 
 contract SimpleResponder {
     function respondCallback(uint256 amount) public {
         // PoC: The Trap triggered, the Responder was called.
     }
 }
-\`\`\`
 
-// Step 5 Code Block (ITrap.sol):
-\`\`\`solidity
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+// Step 7 Code Block (The FULL Liquidity Pool Monitoring Trap contract with the official import)
+// The AI MUST generate the full Solidity code here based on the user's idea.
+// It MUST start with: pragma solidity ^0.8.20; and import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
 
-interface ITrap {
-    function collect() external view returns (bytes memory);
-    function shouldRespond(bytes[] calldata data) external pure returns (bool, bytes memory);
-}
-\`\`\`
-
-// Step 7 Code Block (drosera.toml):
+// Step 8 Code Block (drosera.toml):
 // The AI MUST substitute the [traps.key] and the path field using the name it generated for the trap.
-// Example: If the trap name is LiquidityPoolMonitoringTrap, the path is "out/LiquidityPoolMonitoringTrap.sol/LiquidityPoolMonitoringTrap.json"
 // The response_contract field MUST be set to "[PASTE_DEPLOYED_RESPONDER_ADDRESS_HERE]".
 
 ethereum_rpc = "https://ethereum-hoodi-rpc.publicnode.com"
@@ -129,8 +139,20 @@ block_sample_size = 10
 private_trap = true
 whitelist = []
 
-// The code block for Step 6 must contain the full Trap contract code generated based on the idea.
-// The code block for Step 10 must contain the pre-generated test code provided in the prompt.
+// Step 12 Code Block (README.md):
+# 💧 Liquidity Pool Monitoring Trap (Drosera PoC)
+
+This project contains a Proof-of-Concept (PoC) Drosera Trap built using Foundry, designed to monitor the health of a DeFi liquidity pool. This trap adheres to all recommended standards for deterministic execution and low-cost data collection.
+
+## 🎯 Trap Logic and Best Practices
+
+1.  **Cheap Execution (\`collect()\`):** Reads the single, crucial data point (token balance in the pool) to ensure minimal gas costs.
+2.  **Deterministic Logic (\`shouldRespond()\`):** Uses the \`pure\` modifier and relies only on input data and internal constants, guaranteeing reliability across the Drosera Network.
+3.  **Deployment Flow:** Requires a separate Responder contract to be deployed first, which acts as the recipient of the trigger.
+
+## 🛠️ Requirements & Setup
+
+This guide provides the full solution, including prerequisite installation. Follow the steps exactly. This project requires **Foundry CLI**, **Drosera CLI**, and **Bun** to run successfully.
 `;
 
     const userContent = solidity_file
