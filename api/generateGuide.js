@@ -55,7 +55,7 @@ const systemPrompt = `
 Goal: A complete, self-contained, 12-step guide for a user on a fresh VPS to deploy a full Drosera Trap project (Trap + Responder + Documentation).
 
 Trap HARD RULES:
-- Trap contract name: MUST be derived from the idea, e.g., 'LiquidityPoolMonitoringTrap'.
+- Trap contract name: MUST be derived from the idea, e.g., 'PriceSpikeTrap'.
 - Trap code MUST use the official import: import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
 - Responder contract: MUST be named SimpleResponder and use respondCallback(uint256).
 - All Solidity code MUST use pragma solidity ^0.8.20.
@@ -72,7 +72,7 @@ Guide must contain these exact 12 steps in the following order:
 8) **Create the drosera.toml configuration file.** (The description MUST instruct the user to paste the address captured in Step 6 into the 'response_contract' field).
 9) Edit foundry.toml (for solc version and lib paths if necessary).
 10) Build and Test Commands (Include 'forge test' and the final 'drosera apply').
-11) Create the test/{{TrapName}}.t.sol file (Provide the pre-generated test code block: \${testSolidityCode}).
+11) Create the test/{{TrapName}}.t.sol file (Provide the pre-generated test code block: \\\${testSolidityCode}).
 12) **Create the README.md file.** (Provide the full ReadMe content for this specific trap).
 
 ---
@@ -105,12 +105,15 @@ forge install https://github.com/drosera-network/drosera-contracts
 
 // The description for Step 3 MUST contain the following content:
 /* Now that you've initialized your project, install the official drosera-contracts library. This package contains the necessary ITrap.sol interface your contract will inherit, ensuring full official compliance. 
-⚠️ Authentication Warning (READ THIS): When you run this command, Git may prompt you for a Username and Password for https://github.com. You MUST use a Personal Access Token (PAT) as the password, not your regular GitHub login password. 
-Where to find the PAT: If you don't have one, you must generate one in your GitHub Settings → Developer settings → Personal access tokens. Ensure the token has the repo scope enabled. Copy the token immediately and paste it into the terminal when prompted for the password. */
-
+⚠️ Authentication Warning (READ THIS): When you run this command, Git may prompt you for a Username and Password for https://github.com. You MUST use a **Personal Access Token (PAT)** as the password, not your regular GitHub login password. 
+Where to find the PAT: If you don't have one, you must generate one in your GitHub Settings → Developer settings → Personal access tokens. Ensure the token has the \`repo\` scope enabled. Copy the token immediately and paste it into the terminal when prompted for the password. */
 
 
 // Step 4 Code Block (SimpleResponder):
+cd src
+nano SimpleResponder.sol
+# Paste the Solidity code below into the nano editor, then save (Ctrl+X, Y, Enter).
+
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
@@ -120,13 +123,27 @@ contract SimpleResponder {
     }
 }
 
-// Step 7 Code Block (The FULL Liquidity Pool Monitoring Trap contract with the official import)
-// The AI MUST generate the full Solidity code here based on the user's idea.
-// It MUST start with: pragma solidity ^0.8.20; and import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+cd ..
+
+
+// Step 6 Code Block (Deploy Responder)
+# CRITICAL FIX: Single-line command with --broadcast and corrected RPC
+forge create src/SimpleResponder.sol:SimpleResponder --rpc-url https://rpc.ankr.com/eth_hoodi/efcdb71bacc948ca157b2f646789f6e765d94fe715147b1c2f132edf928b4333 --private-key YOUR_FUNDED_PRIVATE_KEY --broadcast
+
+
+// Step 7 Code Block (The FULL Trap contract with the official import)
+cd src
+nano {{TrapName}}.sol
+# Paste the Solidity code below into the nano editor, then save (Ctrl+X, Y, Enter).
+
+// The AI MUST inject the full Solidity code here using the code provided in the user's request, ensuring it starts with pragma solidity ^0.8.20; and import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+
+cd ..
+
 
 // Step 8 Code Block (drosera.toml):
-// The AI MUST substitute the [traps.key] and the path field using the name it generated for the trap.
-// The response_contract field MUST be set to "[PASTE_DEPLOYED_RESPONDER_ADDRESS_HERE]".
+nano drosera.toml
+# Paste the TOML configuration below into the nano editor, then save (Ctrl+X, Y, Enter).
 
 ethereum_rpc = "https://ethereum-hoodi-rpc.publicnode.com"
 drosera_rpc = "https://relay.hoodi.drosera.io"
@@ -146,16 +163,62 @@ block_sample_size = 10
 private_trap = true
 whitelist = []
 
+
+// Step 9 Code Block (foundry.toml):
+nano foundry.toml
+# Change the 'solc' version and ensure remappings are correctly set
+# Paste the content below into the nano editor, then save (Ctrl+X, Y, Enter).
+
+[profile.default]
+out = 'out'
+src = 'src'
+libs = ['lib']
+
+# Set the compiler version to match the contracts' requirements
+solc = '0.8.20'
+
+# CRITICAL FIX: The remappings are essential for the original import path to resolve
+remapping = [
+    'drosera-contracts/=lib/drosera-contracts/contracts/',
+    'forge-std/=lib/forge-std/src/'
+]
+
+[rpc_endpoints]
+hoodi = "https://ethereum-hoodi-rpc.publicnode.com"
+
+
+// Step 10 Code Block (Build and Deploy):
+# 1. Build the final Trap contract
+forge build
+
+# 2. Deploy the Trap using Drosera CLI (Replace YOUR_FUNDED_PRIVATE_KEY)
+# NOTE: If you get TrapCreationLimitReached, the network is busy. Wait and retry.
+DROSERA_PRIVATE_KEY=YOUR_FUNDED_PRIVATE_KEY drosera apply
+
+
+// Step 11 Code Block (Test Code):
+cd test
+nano {{TrapName}}.t.sol
+# Paste the Test code below into the nano editor, then save (Ctrl+X, Y, Enter).
+
+\\\${testSolidityCode}
+
+cd ..
+
+
 // Step 12 Code Block (README.md):
-# 💧 Liquidity Pool Monitoring Trap (Drosera PoC)
+nano README.md
+# Paste the Markdown content below into the nano editor, then save (Ctrl+X, Y, Enter).
 
-This project contains a Proof-of-Concept (PoC) Drosera Trap built using Foundry, designed to monitor the health of a DeFi liquidity pool. This trap adheres to all recommended standards for deterministic execution and low-cost data collection.
+#  {{TrapName}} (Drosera PoC)
 
-## 🎯 Trap Logic and Best Practices
+This project contains a Proof-of-Concept (PoC) Drosera Trap built using Foundry, designed to monitor a specific on-chain condition related to {{DerivedProjectName}}. This trap adheres to all recommended standards for deterministic execution and low-cost data collection.
 
-1.  **Cheap Execution (\`collect()\`):** Reads the single, crucial data point (token balance in the pool) to ensure minimal gas costs.
-2.  **Deterministic Logic (\`shouldRespond()\`):** Uses the \`pure\` modifier and relies only on input data and internal constants, guaranteeing reliability across the Drosera Network.
-3.  **Deployment Flow:** Requires a separate Responder contract to be deployed first, which acts as the recipient of the trigger.
+## Trap Logic and Best Practices
+
+1.  **Cheap Execution (\`collect()\`):** Focuses on reading only the single, crucial data point required for the check (e.g., DEX reserves).
+2.  **Deterministic Logic (\`shouldRespond()\`):** Uses the \`pure\` modifier and relies only on historical input data and internal constants, guaranteeing reliability across the Drosera Network.
+3.  **Deployment Flow:** Requires a separate Responder contract (\`SimpleResponder.sol\`) to be deployed first, which acts as the recipient of the trigger.
 
 ## 🛠️ Requirements & Setup
 
