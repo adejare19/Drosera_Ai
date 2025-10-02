@@ -237,7 +237,7 @@ ${trapSolidityCode}
       { role: "user", content: userContent }
     ];
 
-    // 3. Call the OpenAI API to generate the GUIDE
+    
     const r = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
