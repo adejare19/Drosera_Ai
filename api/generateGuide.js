@@ -50,66 +50,68 @@ export default async function handler(req, res) {
     // ====================================================================
 
 const systemPrompt = `
-**STRICT OUTPUT RULE:** You MUST output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "code"?: string }...]}. DO NOT INCLUDE ANY MARKDOWN FENCES, COMMENTARY, OR TEXT OUTSIDE THE JSON OBJECT.
+**STRICT OUTPUT RULE:** You MUST output ONLY a strict JSON object: {"steps":[{ "title": string, "description": string, "sub_steps": [ { "block_title": string, "code": string, "description"?: string } ] }]}. DO NOT INCLUDE ANY MARKDOWN FENCES, COMMENTARY, OR TEXT OUTSIDE THE JSON OBJECT.
 
-Goal: A complete, self-contained, 12-step guide for a user on a fresh VPS to deploy a full Drosera Trap project (Trap + Responder + Documentation).
+Goal: A complete, self-contained, 5-phase guide for a user on a fresh VPS to deploy a full Drosera Trap project.
 
 Trap HARD RULES:
-- Trap contract name: MUST be derived from the idea, e.g., 'PriceSpikeTrap'.
-- Trap code MUST use the official import: import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+- Trap contract name: MUST be derived from the idea, e.g., 'LiquidityTrap'.
+- Trap code MUST use the correct import: import {ITrap} from "contracts/interfaces/ITrap.sol";
 - Responder contract: MUST be named SimpleResponder and use respondCallback(uint256).
 - All Solidity code MUST use pragma solidity ^0.8.20.
+- CRITICAL LOGIC RULE: If the trap monitors a token or external contract (e.g., price, balance, liquidity), the generated 'address public constant TOKEN' (or equivalent) MUST use the **Dexter Token** address: 0xFba1bc0E3d54D71Ba55da7C03c7f63D4641921B1.
 
-Guide must contain these exact 12 steps in the following order:
+// The Guide must contain these exact 5 phases in order, with the required blocks:
 
-1) **Install All Prerequisites (Drosera CLI, Foundry CLI, Bun).** (This is a single step containing all installation commands).
-2) Initialize the Project Directory and Foundry Workspace (Use mkdir/cd/forge init commands).
-3) **Install Drosera Dependency.** (Use the forge install command for 'drosera-contracts').
-4) Create src/SimpleResponder.sol (Provide the Responder code block).
-5) Build the contracts (forge build).
-6) **Deploy the Responder Contract.** (Description MUST explain how to run 'forge create' and CAPTURE the address).
-7) Create src/{{TrapName}}.sol (Provide the FULL Trap code block, including the official import).
-8) **Create the drosera.toml configuration file.** (The description MUST instruct the user to paste the address captured in Step 6 into the 'response_contract' field).
-9) Edit foundry.toml (for solc version and lib paths if necessary).
-10) Build and Test Commands (Include 'forge test' and the final 'drosera apply').
-11) Create the test/{{TrapName}}.t.sol file (Provide the pre-generated test code block: \\\${testSolidityCode}).
-12) **Create the README.md file.** (Provide the full ReadMe content for this specific trap).
+1) **Phase 1: Environment & Project Setup**
+    - Description MUST cover prerequisites and initialization.
+    - MUST include 3 sub_steps: 'Install Required Tools', 'Initialize Project Directory', and 'Install Dependencies'.
+2) **Phase 2: Responder Contract Deployment**
+    - Description MUST explain the Responder's role and the need to capture its address.
+    - MUST include 2 sub_steps: 'Create SimpleResponder.sol' and 'Build & Deploy Responder (Capture Address)'.
+3) **Phase 3: Trap Contract & Configuration**
+    - Description MUST focus on creating the unique Trap file and its configuration.
+    - MUST include 3 sub_steps: 'Create src/{{TrapName}}.sol', 'Create drosera.toml Configuration', and 'Edit foundry.toml (Remappings/RPC)'.
+4) **Phase 4: Final Deployment & Operator Setup**
+    - Description MUST cover the final deployment, registration, and activation steps.
+    - MUST include 3 sub_steps: 'Build & Deploy Trap (drosera apply)', 'Operator Registration (Separate Wallet)', and 'Operator Opt-In (Activate Monitoring)'.
+5) **Phase 5: Documentation & Finalization**
+    - Description MUST cover the final step to activate monitoring and view the README.
+    - MUST include 2 sub_steps: 'Finalize Operator Service (Reload)' and 'Create README.md Documentation'.
+
 
 ---
 
-// The following blocks MUST be used for the 'code' properties:
+// The following blocks MUST be used to populate the 'code' properties within the sub_steps:
 
-// Step 1 Code Block (Installation):
+// Code Block for: 'Install Required Tools'
 cd ~
 # Drosera CLI
 curl -L https://app.drosera.io/install | bash
 source ~/.bashrc
 droseraup
 
-# Foundry CLI (Solidity development)
+# Foundry CLI
 curl -L https://foundry.paradigm.xyz | bash
 source ~/.bashrc
 foundryup
 
-# Bun (JavaScript runtime - required for some Drosera tools)
+# Bun (JavaScript runtime)
 curl -fsSL https://bun.sh/install | bash
 source ~/.bashrc
 
-// Step 2 Code Block (MUST use the name derived from the idea, e.g., LiquidityPoolTrap):
+
+// Code Block for: 'Initialize Project Directory' (MUST use the name derived from the idea)
 mkdir {{DerivedProjectName}}
 cd {{DerivedProjectName}}
 forge init
 
-// Step 3 Code Block (Drosera Install):
-forge install https://github.com/drosera-network/drosera-contracts
 
-// The description for Step 3 MUST contain the following content:
-/* Now that you've initialized your project, install the official drosera-contracts library. This package contains the necessary ITrap.sol interface your contract will inherit, ensuring full official compliance. 
-⚠️ Authentication Warning (READ THIS): When you run this command, Git may prompt you for a Username and Password for https://github.com. You MUST use a **Personal Access Token (PAT)** as the password, not your regular GitHub login password. 
-Where to find the PAT: If you don't have one, you must generate one in your GitHub Settings → Developer settings → Personal access tokens. Ensure the token has the \`repo\` scope enabled. Copy the token immediately and paste it into the terminal when prompted for the password. */
+// Code Block for: 'Install Dependencies'
+forge install https://github.com/drosera-network/contracts
 
 
-// Step 4 Code Block (SimpleResponder):
+// Code Block for: 'Create SimpleResponder.sol'
 cd src
 nano SimpleResponder.sol
 # Paste the Solidity code below into the nano editor, then save (Ctrl+X, Y, Enter).
@@ -118,34 +120,35 @@ nano SimpleResponder.sol
 pragma solidity ^0.8.20;
 
 contract SimpleResponder {
-    function respondCallback(uint256 amount) public {
-        // PoC: The Trap triggered, the Responder was called.
-    }
+    function respondCallback(uint256 amount) public {
+        // PoC: The Trap triggered, the Responder was called.
+    }
 }
 
 cd ..
 
 
-// Step 6 Code Block (Deploy Responder)
-# CRITICAL FIX: Single-line command with --broadcast and corrected RPC
-forge create src/SimpleResponder.sol:SimpleResponder --rpc-url https://rpc.ankr.com/eth_hoodi/efcdb71bacc948ca157b2f646789f6e765d94fe715147b1c2f132edf928b4333 --private-key YOUR_FUNDED_PRIVATE_KEY --broadcast
+// Code Block for: 'Build & Deploy Responder (Capture Address)'
+forge build
+# CRITICAL FIX: Single-line command with --broadcast and corrected RPC. CAPTURE THIS ADDRESS.
+forge create src/SimpleResponder.sol:SimpleResponder --rpc-url https://rpc.hoodi.ethpandaops.io --private-key YOUR_FUNDED_PRIVATE_KEY --broadcast
 
 
-// Step 7 Code Block (The FULL Trap contract with the official import)
+// Code Block for: 'Create src/{{TrapName}}.sol'
 cd src
 nano {{TrapName}}.sol
 # Paste the Solidity code below into the nano editor, then save (Ctrl+X, Y, Enter).
 
-// The AI MUST inject the full Solidity code here using the code provided in the user's request, ensuring it starts with pragma solidity ^0.8.20; and import {ITrap} from "drosera-contracts/interfaces/ITrap.sol";
+// The AI MUST inject the full Solidity code here using the code provided in the user's request, ensuring it starts with pragma solidity ^0.8.20; and import {ITrap} from "contracts/interfaces/ITrap.sol";
 
 cd ..
 
 
-// Step 8 Code Block (drosera.toml):
+// Code Block for: 'Create drosera.toml Configuration'
 nano drosera.toml
 # Paste the TOML configuration below into the nano editor, then save (Ctrl+X, Y, Enter).
 
-ethereum_rpc = "https://ethereum-hoodi-rpc.publicnode.com"
+ethereum_rpc = "https://rpc.hoodi.ethpandaops.io"
 drosera_rpc = "https://relay.hoodi.drosera.io"
 eth_chain_id = 560048
 drosera_address = "0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D"
@@ -164,9 +167,8 @@ private_trap = true
 whitelist = []
 
 
-// Step 9 Code Block (foundry.toml):
+// Code Block for: 'Edit foundry.toml (Remappings/RPC)'
 nano foundry.toml
-# Change the 'solc' version and ensure remappings are correctly set
 # Paste the content below into the nano editor, then save (Ctrl+X, Y, Enter).
 
 [profile.default]
@@ -177,18 +179,18 @@ libs = ['lib']
 # Set the compiler version to match the contracts' requirements
 solc = '0.8.20'
 
-# CRITICAL FIX: The remappings are essential for the original import path to resolve
+# CRITICAL FIX: The remappings are essential for the import path
 remapping = [
-    'drosera-contracts/=lib/drosera-contracts/contracts/',
-    'forge-std/=lib/forge-std/src/'
+    'contracts/=lib/contracts/contracts/',
+    'forge-std/=lib/forge-std/src/'
 ]
 
 [rpc_endpoints]
-hoodi = "https://ethereum-hoodi-rpc.publicnode.com"
+hoodi = "https://rpc.hoodi.ethpandaops.io"
 
 
-// Step 10 Code Block (Build and Deploy):
-# 1. Build the final Trap contract
+// Code Block for: 'Build & Deploy Trap (drosera apply)'
+# 1. Ensure the final Trap contract is built
 forge build
 
 # 2. Deploy the Trap using Drosera CLI (Replace YOUR_FUNDED_PRIVATE_KEY)
@@ -196,21 +198,30 @@ forge build
 DROSERA_PRIVATE_KEY=YOUR_FUNDED_PRIVATE_KEY drosera apply
 
 
-// Step 11 Code Block (Test Code):
-cd test
-nano {{TrapName}}.t.sol
-# Paste the Test code below into the nano editor, then save (Ctrl+X, Y, Enter).
-
-\\\${testSolidityCode}
-
-cd ..
+// Code Block for: 'Operator Registration (Separate Wallet)'
+# This is for a separate Operator wallet. Replace YOUR_OPERATOR_PRIVATE_KEY.
+# This step can be skipped if your wallet is already registered.
+drosera-operator register --eth-rpc-url https://rpc.hoodi.ethpandaops.io --eth-private-key YOUR_OPERATOR_PRIVATE_KEY --drosera-address 0x91cB447BaFc6e0EA0F4Fe056F5a9b1F14bb06e5D
 
 
-// Step 12 Code Block (README.md):
+// Code Block for: 'Operator Opt-In (Activate Monitoring)'
+# Link your registered Operator wallet to the newly deployed Trap.
+# Replace YOUR_OPERATOR_PRIVATE_KEY and YOUR_DEPLOYED_TRAP_ADDRESS.
+drosera-operator optin --eth-rpc-url https://rpc.hoodi.ethpandaops.io --eth-private-key YOUR_OPERATOR_PRIVATE_KEY --trap-config-address 0x{{TrapAddress}}
+
+
+// Code Block for: 'Finalize Operator Service (Reload)'
+# The Operator service must be restarted/reloaded to recognize the new opt-in configuration.
+# Use 'pm2 reload drosera-operator' or 'sudo systemctl restart drosera-operator' depending on your setup.
+echo "Monitoring is now active. If you are running the operator service,"
+echo "RESTART/RELOAD it now (e.g., pm2 reload drosera-operator) to begin watching this trap."
+
+
+// Code Block for: 'Create README.md Documentation'
 nano README.md
 # Paste the Markdown content below into the nano editor, then save (Ctrl+X, Y, Enter).
 
-#  {{TrapName}} (Drosera PoC)
+#  {{TrapName}} (Drosera PoC)
 
 This project contains a Proof-of-Concept (PoC) Drosera Trap built using Foundry, designed to monitor a specific on-chain condition related to {{DerivedProjectName}}. This trap adheres to all recommended standards for deterministic execution and low-cost data collection.
 
