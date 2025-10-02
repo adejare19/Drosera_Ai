@@ -101,7 +101,14 @@ cd {{DerivedProjectName}}
 forge init
 
 // Step 3 Code Block (Drosera Install):
-forge install drosera-network/drosera-contracts
+forge install https://github.com/drosera-network/drosera-contracts
+
+// The description for Step 3 MUST contain the following content:
+/* Now that you've initialized your project, install the official drosera-contracts library. This package contains the necessary ITrap.sol interface your contract will inherit, ensuring full official compliance. 
+⚠️ Authentication Warning (READ THIS): When you run this command, Git may prompt you for a Username and Password for https://github.com. You MUST use a Personal Access Token (PAT) as the password, not your regular GitHub login password. 
+Where to find the PAT: If you don't have one, you must generate one in your GitHub Settings → Developer settings → Personal access tokens. Ensure the token has the repo scope enabled. Copy the token immediately and paste it into the terminal when prompted for the password. */
+
+
 
 // Step 4 Code Block (SimpleResponder):
 // SPDX-License-Identifier: MIT
