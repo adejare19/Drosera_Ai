@@ -69,24 +69,25 @@ Trap HARD RULES:
 - Responder contract: MUST be named SimpleResponder and use respondCallback(uint256).
 - All Solidity code MUST use pragma solidity ^0.8.20.
 - CRITICAL LOGIC RULE: If the trap monitors a token or external contract (e.g., price, balance, liquidity), the generated 'address public constant TOKEN' (or equivalent) MUST use the **Dexter Token** address: 0xFba1bc0E3d54D71Ba55da7C03c7f63D4641921B1.
+- CRITICAL JSON RULE: ALL string values, especially those containing code, must have internal double quotes ESCAPED as \\" and must NOT contain any unescaped backslashes or newlines.
 
 // The Guide must contain these exact 5 phases in order, with the required blocks:
 
 1) **Phase 1: Environment & Project Setup**
-    - Description MUST cover prerequisites and initialization.
-    - MUST include 3 sub_steps: 'Install Required Tools', 'Initialize Project Directory', and 'Install Dependencies'.
+    - Description MUST cover prerequisites and initialization.
+    - MUST include 3 sub_steps: 'Install Required Tools', 'Initialize Project Directory', and 'Install Dependencies'.
 2) **Phase 2: Responder Contract Deployment**
-    - Description MUST explain the Responder's role and the need to capture its address.
-    - MUST include 2 sub_steps: 'Create SimpleResponder.sol' and 'Build & Deploy Responder (Capture Address)'.
+    - Description MUST explain the Responder's role and the need to capture its address.
+    - MUST include 2 sub_steps: 'Create SimpleResponder.sol' and 'Build & Deploy Responder (Capture Address)'.
 3) **Phase 3: Trap Contract & Configuration**
-    - Description MUST focus on creating the unique Trap file and its configuration.
-    - MUST include 3 sub_steps: 'Create src/{{TrapName}}.sol', 'Create drosera.toml Configuration', and 'Edit foundry.toml (Remappings/RPC)'.
+    - Description MUST focus on creating the unique Trap file and its configuration.
+    - MUST include 3 sub_steps: 'Create src/{{TrapName}}.sol', 'Create drosera.toml Configuration', and 'Edit foundry.toml (Remappings/RPC)'.
 4) **Phase 4: Final Deployment & Operator Setup**
-    - Description MUST cover the final deployment, registration, and activation steps.
-    - MUST include 3 sub_steps: 'Build & Deploy Trap (drosera apply)', 'Operator Registration (Separate Wallet)', and 'Operator Opt-In (Activate Monitoring)'.
+    - Description MUST cover the final deployment, registration, and activation steps.
+    - MUST include 3 sub_steps: 'Build & Deploy Trap (drosera apply)', 'Operator Registration (Separate Wallet)', and 'Operator Opt-In (Activate Monitoring)'.
 5) **Phase 5: Documentation & Finalization**
-    - Description MUST cover the final step to activate monitoring and view the README.
-    - MUST include 2 sub_steps: 'Finalize Operator Service (Reload)' and 'Create README.md Documentation'.
+    - Description MUST cover the final step to activate monitoring and view the README.
+    - MUST include 2 sub_steps: 'Finalize Operator Service (Reload)' and 'Create README.md Documentation'.
 
 
 ---
@@ -230,19 +231,35 @@ echo "RESTART/RELOAD it now (e.g., pm2 reload drosera-operator) to begin watchin
 nano README.md
 # Paste the Markdown content below into the nano editor, then save (Ctrl+X, Y, Enter).
 
-#  {{TrapName}} (Drosera PoC)
+# {{TrapName}} (Drosera Proof-of-Concept)
 
-This project contains a Proof-of-Concept (PoC) Drosera Trap built using Foundry, designed to monitor a specific on-chain condition related to {{DerivedProjectName}}. This trap adheres to all recommended standards for deterministic execution and low-cost data collection.
+A comprehensive guide and code for a Drosera Trap designed to monitor **{{DerivedProjectName}}**.
 
-## Trap Logic and Best Practices
+## What It Does
+* The AI MUST provide 2-3 concise bullet points describing the specific behavior and conditions this trap monitors.
+* It monitors a specific on-chain condition related to {{DerivedProjectName}}.
+* It demonstrates the essential Drosera trap pattern using deterministic logic.
 
-1.  **Cheap Execution (\`collect()\`):** Focuses on reading only the single, crucial data point required for the check (e.g., DEX reserves).
-2.  **Deterministic Logic (\`shouldRespond()\`):** Uses the \`pure\` modifier and relies only on historical input data and internal constants, guaranteeing reliability across the Drosera Network.
-3.  **Deployment Flow:** Requires a separate Responder contract (\`SimpleResponder.sol\`) to be deployed first, which acts as the recipient of the trigger.
+## Key Files
+* \`src/{{TrapName}}.sol\` - The trap contract.
+* \`src/SimpleResponder.sol\` - The required external response contract.
+* \`drosera.toml\` - The deployment configuration file.
 
-## 🛠️ Requirements & Setup
+## How It Works
 
-This guide provides the full solution, including prerequisite installation. Follow the steps exactly. This project requires **Foundry CLI**, **Drosera CLI**, and **Bun** to run successfully.
+// The AI MUST insert a concise, syntax-highlighted Solidity code snippet of the \`shouldRespond()\` logic here. 
+// Use an ellipsis (...) for functions not shown.
+
+* **Hardcoded Configuration:** Explain why constants are used and what is being monitored.
+* **Deterministic Logic:** Explain the use of the \`pure\` modifier and how historical data (\`bytes[] calldata data\`) is used.
+* **Response Mechanism:** Explain the role of the external Responder contract.
+
+## Test It
+To verify the trap logic using Foundry, run the following command (assuming a test file has been created):
+
+\`\`\`bash
+forge test --match-contract {{TrapName}}
+\`\`\`
 `;
 
     const userContent = solidity_file
