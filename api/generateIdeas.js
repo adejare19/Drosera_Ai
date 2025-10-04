@@ -70,12 +70,14 @@ HARD RULES:
 - shouldRespond(): data[0] = latest, data[data.length-1] = oldest.
 - No external libraries other than optional inline IERC20.
 - No responder functions or extra files.
+**DIVERSITY RULE:** To ensure varied results, each new request MUST ignore all previous outputs and generate completely novel ideas, using the categories listed and the user context as inspiration. You MUST generate ideas that have not been provided in previous API calls.
+
 `
       },
       {
-        role: "user",
-        content: `Base idea/context: "${userIdea}". Return 3 DIFFERENT categories. Keep Solidity minimal and Foundry-friendly.`
-      }
+        role: "user",
+        content: `Base idea/context: "${userIdea}". Return 3 DIFFERENT categories. IMPORTANT: Ensure the ideas are DIVERSE and creative, not generic examples. Keep Solidity minimal and Foundry-friendly.`
+      }
     ];
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -86,7 +88,7 @@ HARD RULES:
       },
       body: JSON.stringify({
         model: "gpt-4o-mini",
-        temperature: 0.5,
+        temperature: 0.9,
         max_tokens: 2800,
         messages
       })

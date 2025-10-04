@@ -42,6 +42,7 @@ html {
   cursor: pointer;
   transition: transform 0.2s ease;
 }
+
 .btn-back:hover {
   transform: scale(1.1);
 }
@@ -79,6 +80,8 @@ html {
   overflow-x: auto;
   line-height: 1.4;
   border: 1px solid #333;
+  position: relative;
+  padding-right: 110px;
 }
 
 /* Copy button inline */
@@ -92,6 +95,7 @@ html {
   cursor: pointer;
   transition: background 0.3s;
 }
+
 .copy-btn-inline:hover {
   background: #732d91;
 }
@@ -106,6 +110,7 @@ html {
   border-radius: 30px;
   transition: all 0.3s ease-in-out;
 }
+
 .btn-next:hover {
   background: #e65c00;
 }
@@ -115,6 +120,7 @@ html {
   border: none;
   color: #fff;
 }
+
 .btn-light {
   background: #ddd !important;
   border: none;
@@ -147,4 +153,39 @@ html {
   background: rgba(255, 255, 255, 0.05);
   padding: 10px;
   border-radius: 6px;
+}
+
+/* Add these styles to your index.html <style> block or captain.css */
+
+/* Terminal commands will get a subtle green left border */
+.file-code-block.terminal-command {
+  border-left: 5px solid #33ff66;
+}
+
+/* File content (Solidity/TOML) will get an orange left border and custom style */
+.file-code-block.file-content {
+  border-left: 5px solid #ff6600;
+  padding-bottom: 55px;
+  /* Add space for the copy button at the bottom */
+}
+
+/* Style for the editable code area (textarea) */
+.file-code-block .code-editor {
+  /* Override default textarea styles for better appearance */
+  box-sizing: border-box;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-radius: 6px;
+  resize: vertical;
+  /* Allow resizing */
+  min-height: 200px !important;
+}
+
+/* Position the File Copy button correctly */
+.file-code-block .copy-btn-file {
+  position: absolute;
+  bottom: 12px;
+  /* Position relative to the bottom of the container */
+  right: 12px;
+  z-index: 2;
 }
