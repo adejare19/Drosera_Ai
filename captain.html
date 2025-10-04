@@ -229,32 +229,61 @@
             }
         }
 
-        async function fetchIdeas() {
+async function fetchIdeas() {
             const container = document.getElementById('idea-options');
             container.innerHTML = "<p class='text-info'>⚡ Generating ideas...</p>";
+            
+            const username = localStorage.getItem('currentUser'); // Get the username
+
+            // CRITICAL CHECK: Ensure we have a user to send to the server
+            if (!username || username === 'guest_user') {
+                container.innerHTML = "<p class='text-danger'>Authentication failed. Please reload and enter a username.</p>";
+                return;
+            }
+
             try {
                 const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
+                
                 const res = await fetch('/api/generateIdeas', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userIdea })
+                    // 🛑 FIX: Include username in the request body
+                    body: JSON.stringify({ userIdea, username }) 
                 });
+                
+                if (res.status === 403) {
+                    const errData = await res.json();
+                    container.innerHTML = `<p class='text-danger'>${errData.error}</p>`;
+                    return;
+                }
+
                 const data = await res.json();
+                
+                // ... (rest of the success/error handling remains the same) ...
+                
                 if (data.error) {
                     container.innerHTML = `<p class='text-danger'>${data.error}</p>`;
                     console.error("Backend error:", data.raw || data.error);
                     return;
                 }
+                
                 if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
                     container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
                     return;
                 }
+                
                 container.innerHTML = "";
                 data.ideas.forEach((idea) => {
                     const btn = document.createElement("button");
                     btn.className = "btn-true mb-2 text-start";
                     btn.innerHTML = `<strong>${idea.title}</strong> <span class="text-muted">[${idea.category}]</span>\n${idea.summary}`;
-                    btn.onclick = () => generateRepo(idea);
+                    btn.onclick = () => {
+                        // This click is still generating a NEW PoC, so it should enforce the cooldown
+                        if (!isUserEligible(username)) {
+                            return;
+                        }
+                        generateRepo(idea);
+                    };
                     container.appendChild(btn);
                 });
             } catch (err) {
@@ -262,7 +291,6 @@
                 console.error(err);
             }
         }
-
        function generateRepo(idea) {
             const username = localStorage.getItem('currentUser');
             if (!username || username === 'guest_user') {
