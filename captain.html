@@ -58,6 +58,19 @@
             transition: all 0.3s ease-in-out;
         }
 
+        /* NEW STYLE for the Bypass Button */
+        .btn-bypass {
+            background: #27ae60; /* A clear, distinct color */
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 30px;
+            transition: all 0.3s ease-in-out;
+            margin-top: 15px;
+            width: 100%;
+        }
+
         pre {
             text-align: left;
         }
@@ -90,7 +103,7 @@
                 <textarea id="userIdea" class="form-control mb-3" rows="4"
                     placeholder="Describe your PoC idea"></textarea>
                 <button class="btn btn-warning w-100" onclick="generateRepo()">Generate Repo</button>
-            </div>
+                </div>
 
             <div id="step-generate" class="d-none">
                 <h4 class="mb-3">AI-Generated Ideas</h4>
@@ -101,7 +114,7 @@
     </div>
 
     <script>
-        // Background Canvas Animation
+        // Background Canvas Animation (Same as before)
         const canvas = document.getElementById('bgCanvas'),
             ctx = canvas.getContext('2d');
 
@@ -178,18 +191,18 @@
         initParticles();
         animate();
 
-
-
-
-
-        // --- USER ACCESS AND COOLDOWN LOGIC (for UX) ---
+        // -----------------------------------------------------------
+        // --- USER ACCESS AND COOLDOWN LOGIC ---
+        // -----------------------------------------------------------
         const COOLDOWN_MS = 432000000; // 5 days in milliseconds
 
         /**
          * Checks if the user is eligible (client-side soft check only).
-         * This function is for UX feedback and is easily bypassable.
          */
         function isUserEligible(username) {
+            // Remove the old bypass button every time eligibility is checked
+            document.getElementById('correction-bypass-btn')?.remove();
+
             const lastSubmissionTime = localStorage.getItem(`pocSubmissionHistory_${username}`);
 
             if (!lastSubmissionTime) return true;
@@ -213,29 +226,62 @@
             localStorage.setItem(`pocSubmissionHistory_${username}`, new Date().getTime().toString());
         }
 
+        /**
+         * Dynamically adds a button to bypass cooldown for correction on the last idea.
+         */
+        function addBypassButton(username) {
+            const container = document.getElementById('step-idea').classList.contains('d-none') ? 
+                              document.getElementById('step-generate') : 
+                              document.getElementById('step-idea');
+            
+            // Ensure the button is not duplicated
+            if (document.getElementById('correction-bypass-btn')) return;
+            
+            const btn = document.createElement("button");
+            btn.id = 'correction-bypass-btn';
+            btn.className = "btn-bypass mt-3";
+            btn.innerHTML = "📝 **Correction Mode:** Continue to Guide (Bypasses Cooldown)";
+            
+            btn.onclick = () => {
+                // This bypasses the API call and redirects directly to the guide page.
+                const lastIdea = localStorage.getItem("selectedIdea");
+                
+                if (!lastIdea) {
+                    alert("No previous idea found to correct. Please submit a new one after cooldown.");
+                    return;
+                }
+                
+                // Redirect, sending the user and indicating a correction flow
+                window.location.href = `setup.html?correction=true&user=${username}`;
+            };
+            
+            // Append to the Idea or Generate step container
+            container.appendChild(btn);
+        }
+
         // SIMULATED LOGIN: Ensure a user is defined (replace with actual login flow)
         if (!localStorage.getItem('currentUser')) {
-            // You must prompt the user for a username or default to one
             let user = prompt("Please enter your username to proceed:");
-            if (!user) user = 'guest_user';
+            if (!user || user.trim() === "") user = 'guest_user';
             localStorage.setItem('currentUser', user.trim());
         }
 
         async function showStep(step) {
             document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
             document.getElementById('step-' + step).classList.remove('d-none');
+            // Remove bypass button when changing steps
+            document.getElementById('correction-bypass-btn')?.remove(); 
             if (step === 'generate') {
                 await fetchIdeas();
             }
         }
 
-async function fetchIdeas() {
+        async function fetchIdeas() {
             const container = document.getElementById('idea-options');
             container.innerHTML = "<p class='text-info'>⚡ Generating ideas...</p>";
             
-            const username = localStorage.getItem('currentUser'); // Get the username
+            const username = localStorage.getItem('currentUser');
 
-            // CRITICAL CHECK: Ensure we have a user to send to the server
             if (!username || username === 'guest_user') {
                 container.innerHTML = "<p class='text-danger'>Authentication failed. Please reload and enter a username.</p>";
                 return;
@@ -247,19 +293,18 @@ async function fetchIdeas() {
                 const res = await fetch('/api/generateIdeas', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // 🛑 FIX: Include username in the request body
                     body: JSON.stringify({ userIdea, username }) 
                 });
                 
                 if (res.status === 403) {
                     const errData = await res.json();
                     container.innerHTML = `<p class='text-danger'>${errData.error}</p>`;
+                    // Cooldown active, prompt for correction bypass
+                    addBypassButton(username); 
                     return;
                 }
 
                 const data = await res.json();
-                
-                // ... (rest of the success/error handling remains the same) ...
                 
                 if (data.error) {
                     container.innerHTML = `<p class='text-danger'>${data.error}</p>`;
@@ -278,10 +323,14 @@ async function fetchIdeas() {
                     btn.className = "btn-true mb-2 text-start";
                     btn.innerHTML = `<strong>${idea.title}</strong> <span class="text-muted">[${idea.category}]</span>\n${idea.summary}`;
                     btn.onclick = () => {
-                        // This click is still generating a NEW PoC, so it should enforce the cooldown
+                        // This click is still generating a NEW PoC, so enforce the cooldown
                         if (!isUserEligible(username)) {
-                            return;
+                            // If cooldown is active, the bypass button will be added by isUserEligible's call
+                            addBypassButton(username);
+                            return; 
                         }
+                        // Save the selected idea context before proceeding
+                        localStorage.setItem("selectedIdea", JSON.stringify(idea));
                         generateRepo(idea);
                     };
                     container.appendChild(btn);
@@ -291,36 +340,42 @@ async function fetchIdeas() {
                 console.error(err);
             }
         }
-       function generateRepo(idea) {
+        
+        function generateRepo(idea) {
             const username = localStorage.getItem('currentUser');
+            
             if (!username || username === 'guest_user') {
                 alert("Please ensure you are logged in with a unique username.");
                 return;
             }
 
-            // Correction Bypass: The cooldown is only for NEW ideas.
-            // If we are submitting a NEW idea (either AI-suggested or manual input), check cooldown.
+            // --- 1. Perform Cooldown Check ---
             if (!isUserEligible(username)) {
-                return; // Cooldown enforced client-side
+                // If cooldown is active, show the bypass button and stop the process
+                addBypassButton(username);
+                return; 
             }
             
-            // --- Logic for Manual Idea Submission ---
+            // --- 2. If Check Passes: Proceed with Generation ---
+            
             if (!idea) {
+                // Manual Idea Submission
                 const userIdea = document.getElementById('userIdea').value.trim();
                 if (!userIdea) {
                     alert("Please enter an idea first!");
                     return;
                 }
                 
-                // NEW: Pass username to the server via query parameter for manual submission
-                localStorage.removeItem("selectedIdea");
+                // Set the current idea in Local Storage to allow for correction later
+                // The structure for manual input is simpler, just store the text.
+                localStorage.setItem("selectedIdea", JSON.stringify({ userIdea: userIdea, title: "Manual Idea" })); 
+                
+                // Redirect: The API call happens on setup.html when the user asks for the guide
                 window.location.href = `setup.html?idea=${encodeURIComponent(userIdea)}&user=${username}`;
 
             } else {
-                // --- Logic for AI Idea Submission ---
-                // recordSubmission(username); // We'll record this on success in setup.html
-                localStorage.setItem("selectedIdea", JSON.stringify(idea));
-                // NEW: Pass username to the server via query parameter for AI submission
+                // AI Idea Submission (already selected)
+                // Idea data is already in localStorage.selectedIdea from fetchIdeas click handler
                 window.location.href = `setup.html?user=${username}`;
             }
         }
