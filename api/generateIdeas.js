@@ -1,4 +1,46 @@
-// This file does NOT require the 'openai' package
+
+const userHistoryDB = {};
+const COOLDOWN_MS = 432000000; // 5 days in milliseconds
+
+/**
+ * Server-side check for cooldown enforcement.
+ * @param {string} username - The user's unique identifier.
+ * @returns {{allowed: boolean, message: string}} 
+ */
+function checkServerCooldown(username) {
+  const lastTime = userHistoryDB[username];
+  const currentTime = new Date().getTime();
+
+  if (!lastTime) {
+    return { allowed: true, message: "New user or first submission." };
+  }
+
+  const timeSinceLastSubmit = currentTime - lastTime;
+
+  if (timeSinceLastSubmit >= COOLDOWN_MS) {
+    return { allowed: true, message: "Cooldown elapsed." };
+  }
+
+  const remainingTimeMs = COOLDOWN_MS - timeSinceLastSubmit;
+  const remainingHours = (remainingTimeMs / (1000 * 60 * 60)).toFixed(1);
+
+  return {
+    allowed: false,
+    message: `Cooldown active. Wait ${remainingHours} hours.`
+  };
+}
+
+/**
+ * Server-side function to record a successful submission time.
+ * @param {string} username - The user's unique identifier.
+ */
+function recordServerSubmission(username) {
+  userHistoryDB[username] = new Date().getTime();
+  console.log(`[DB] Recorded submission for ${username} at ${userHistoryDB[username]}`);
+}
+
+
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -9,7 +51,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { userIdea } = req.body || {};
+    // Ensure we capture the username, which should be sent by the client
+    const { userIdea, username } = req.body || {};
+
+    if (!username || typeof username !== "string" || username.trim() === "") {
+      console.error("Authentication required (missing username).");
+      return res.status(401).json({ error: "Authentication required (missing username)." });
+    }
+
+    // 🛑 1. ENFORCE SERVER-SIDE COOLDOWN CHECK
+    const cooldownCheck = checkServerCooldown(username);
+    if (!cooldownCheck.allowed) {
+      console.warn(`403 Forbidden: ${username} attempted to bypass cooldown. ${cooldownCheck.message}`);
+      return res.status(403).json({
+        error: `Submission cooldown is active for ${username}. ${cooldownCheck.message}`
+      });
+    }
+
     if (typeof userIdea !== "string" || !userIdea.trim()) {
       return res.status(400).json({ error: "Missing userIdea" });
     }
@@ -120,10 +178,15 @@ HARD RULES:
 
         fixedRaw = fixedRaw.replace(/'([^']+?)':/g, '"$1":');
 
+        // Robust cleanup for internal unescaped double quotes and backslashes
+        fixedRaw = fixedRaw.replace(/([^\\])"/g, '$1\\"');
+        fixedRaw = fixedRaw.replace(/\n/g, '\\n').replace(/\t/g, '\\t');
+
+
         try {
           ideas = JSON.parse(fixedRaw);
         } catch (e) {
-          console.error("Failed to parse regex-extracted JSON.", e);
+          console.error("Failed to parse regex-extracted JSON. Final attempt failed.", e);
           // If all else fails, log the problem data and throw.
           return res.status(500).json({
             error: "Invalid AI JSON output after all fixes.",
@@ -137,7 +200,7 @@ HARD RULES:
       }
     }
 
-    // --- Final Validation (Moved outside the primary parsing try/catch) ---
+    // --- Final Validation ---
     try {
       if (!Array.isArray(ideas) || ideas.length !== 3) {
         throw new Error(`Expected a JSON array with exactly 3 ideas, but received ${ideas?.length || 0}.`);
@@ -151,6 +214,9 @@ HARD RULES:
       console.error("Invalid AI JSON (ideas structure):", err, ideas);
       return res.status(500).json({ error: err.message, raw: ideas });
     }
+
+    // 🛑 2. RECORD SUCCESSFUL SUBMISSION (Only if validation passes)
+    recordServerSubmission(username);
 
     return res.status(200).json({ ideas });
   } catch (err) {

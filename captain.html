@@ -87,7 +87,8 @@
 
             <div id="step-idea" class="d-none">
                 <h4 class="mb-3">Enter your PoC Idea</h4>
-                <textarea id="userIdea" class="form-control mb-3" rows="4" placeholder="Describe your PoC idea"></textarea>
+                <textarea id="userIdea" class="form-control mb-3" rows="4"
+                    placeholder="Describe your PoC idea"></textarea>
                 <button class="btn btn-warning w-100" onclick="generateRepo()">Generate Repo</button>
             </div>
 
@@ -177,6 +178,49 @@
         initParticles();
         animate();
 
+
+
+
+
+        // --- USER ACCESS AND COOLDOWN LOGIC (for UX) ---
+        const COOLDOWN_MS = 432000000; // 5 days in milliseconds
+
+        /**
+         * Checks if the user is eligible (client-side soft check only).
+         * This function is for UX feedback and is easily bypassable.
+         */
+        function isUserEligible(username) {
+            const lastSubmissionTime = localStorage.getItem(`pocSubmissionHistory_${username}`);
+
+            if (!lastSubmissionTime) return true;
+
+            const currentTime = new Date().getTime();
+            const timeSinceLastSubmit = currentTime - parseInt(lastSubmissionTime, 10);
+
+            if (timeSinceLastSubmit >= COOLDOWN_MS) return true;
+
+            const remainingTimeMs = COOLDOWN_MS - timeSinceLastSubmit;
+            const remainingDays = (remainingTimeMs / (1000 * 60 * 60 * 24)).toFixed(1);
+
+            alert(`🚫 Cooldown Active: You must wait ${remainingDays} days before submitting a NEW PoC idea.`);
+            return false;
+        }
+
+        /**
+         * Records a new PoC submission time (Client-side record).
+         */
+        function recordSubmission(username) {
+            localStorage.setItem(`pocSubmissionHistory_${username}`, new Date().getTime().toString());
+        }
+
+        // SIMULATED LOGIN: Ensure a user is defined (replace with actual login flow)
+        if (!localStorage.getItem('currentUser')) {
+            // You must prompt the user for a username or default to one
+            let user = prompt("Please enter your username to proceed:");
+            if (!user) user = 'guest_user';
+            localStorage.setItem('currentUser', user.trim());
+        }
+
         async function showStep(step) {
             document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
             document.getElementById('step-' + step).classList.remove('d-none');
@@ -219,20 +263,37 @@
             }
         }
 
-        function generateRepo(idea) {
-            if (idea) {
-                // ✅ This is the critical change: store the entire idea object
-                localStorage.setItem("selectedIdea", JSON.stringify(idea));
-                window.location.href = "setup.html";
-            } else {
+       function generateRepo(idea) {
+            const username = localStorage.getItem('currentUser');
+            if (!username || username === 'guest_user') {
+                alert("Please ensure you are logged in with a unique username.");
+                return;
+            }
+
+            // Correction Bypass: The cooldown is only for NEW ideas.
+            // If we are submitting a NEW idea (either AI-suggested or manual input), check cooldown.
+            if (!isUserEligible(username)) {
+                return; // Cooldown enforced client-side
+            }
+            
+            // --- Logic for Manual Idea Submission ---
+            if (!idea) {
                 const userIdea = document.getElementById('userIdea').value.trim();
                 if (!userIdea) {
                     alert("Please enter an idea first!");
                     return;
                 }
-                // When there's no idea object, we pass the text as a query string
-                localStorage.removeItem("selectedIdea"); // Clear previous AI idea
-                window.location.href = `setup.html?idea=${encodeURIComponent(userIdea)}`;
+                
+                // NEW: Pass username to the server via query parameter for manual submission
+                localStorage.removeItem("selectedIdea");
+                window.location.href = `setup.html?idea=${encodeURIComponent(userIdea)}&user=${username}`;
+
+            } else {
+                // --- Logic for AI Idea Submission ---
+                // recordSubmission(username); // We'll record this on success in setup.html
+                localStorage.setItem("selectedIdea", JSON.stringify(idea));
+                // NEW: Pass username to the server via query parameter for AI submission
+                window.location.href = `setup.html?user=${username}`;
             }
         }
     </script>
