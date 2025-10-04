@@ -60,7 +60,8 @@
 
         /* NEW STYLE for the Bypass Button */
         .btn-bypass {
-            background: #27ae60; /* A clear, distinct color */
+            background: #27ae60;
+            /* A clear, distinct color */
             color: #fff;
             font-weight: bold;
             border: none;
@@ -103,7 +104,7 @@
                 <textarea id="userIdea" class="form-control mb-3" rows="4"
                     placeholder="Describe your PoC idea"></textarea>
                 <button class="btn btn-warning w-100" onclick="generateRepo()">Generate Repo</button>
-                </div>
+            </div>
 
             <div id="step-generate" class="d-none">
                 <h4 class="mb-3">AI-Generated Ideas</h4>
@@ -230,31 +231,33 @@
          * Dynamically adds a button to bypass cooldown for correction on the last idea.
          */
         function addBypassButton(username) {
-            const container = document.getElementById('step-idea').classList.contains('d-none') ? 
-                              document.getElementById('step-generate') : 
-                              document.getElementById('step-idea');
-            
+            // CRITICAL FIX: Determine the correct visible container to append the button to.
+            const container = document.getElementById('step-idea').classList.contains('d-none') ?
+                document.getElementById('step-generate') :
+                document.getElementById('step-idea');
+
             // Ensure the button is not duplicated
             if (document.getElementById('correction-bypass-btn')) return;
-            
+
             const btn = document.createElement("button");
             btn.id = 'correction-bypass-btn';
             btn.className = "btn-bypass mt-3";
             btn.innerHTML = "📝 **Correction Mode:** Continue to Guide (Bypasses Cooldown)";
-            
+
             btn.onclick = () => {
                 // This bypasses the API call and redirects directly to the guide page.
                 const lastIdea = localStorage.getItem("selectedIdea");
-                
+
                 if (!lastIdea) {
                     alert("No previous idea found to correct. Please submit a new one after cooldown.");
                     return;
                 }
-                
+
                 // Redirect, sending the user and indicating a correction flow
+                // The `correction=true` flag tells setup.html to skip generating a new guide.
                 window.location.href = `setup.html?correction=true&user=${username}`;
             };
-            
+
             // Append to the Idea or Generate step container
             container.appendChild(btn);
         }
@@ -270,7 +273,7 @@
             document.querySelectorAll('.step-card > div').forEach(el => el.classList.add('d-none'));
             document.getElementById('step-' + step).classList.remove('d-none');
             // Remove bypass button when changing steps
-            document.getElementById('correction-bypass-btn')?.remove(); 
+            document.getElementById('correction-bypass-btn')?.remove();
             if (step === 'generate') {
                 await fetchIdeas();
             }
@@ -279,7 +282,7 @@
         async function fetchIdeas() {
             const container = document.getElementById('idea-options');
             container.innerHTML = "<p class='text-info'>⚡ Generating ideas...</p>";
-            
+
             const username = localStorage.getItem('currentUser');
 
             if (!username || username === 'guest_user') {
@@ -288,46 +291,48 @@
             }
 
             try {
+                // CRITICAL FIX: Ensure userIdea is retrieved from the input field when generating ideas
+                // This input field is usually visible when the user clicks 'I have an idea' first,
+                // but we check it here for context if they clicked 'Suggest Ideas' second.
                 const userIdea = document.getElementById("userIdea")?.value.trim() || "General trap idea";
-                
+
                 const res = await fetch('/api/generateIdeas', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userIdea, username }) 
+                    body: JSON.stringify({ userIdea, username })
                 });
-                
+
                 if (res.status === 403) {
                     const errData = await res.json();
                     container.innerHTML = `<p class='text-danger'>${errData.error}</p>`;
-                    // Cooldown active, prompt for correction bypass
-                    addBypassButton(username); 
+                    // Cooldown active on the server, prompt for correction bypass
+                    addBypassButton(username);
                     return;
                 }
 
                 const data = await res.json();
-                
+
                 if (data.error) {
                     container.innerHTML = `<p class='text-danger'>${data.error}</p>`;
                     console.error("Backend error:", data.raw || data.error);
                     return;
                 }
-                
+
                 if (!data.ideas || !Array.isArray(data.ideas) || data.ideas.length === 0) {
                     container.innerHTML = "<p class='text-warning'>No ideas returned. Try again.</p>";
                     return;
                 }
-                
+
                 container.innerHTML = "";
                 data.ideas.forEach((idea) => {
                     const btn = document.createElement("button");
                     btn.className = "btn-true mb-2 text-start";
                     btn.innerHTML = `<strong>${idea.title}</strong> <span class="text-muted">[${idea.category}]</span>\n${idea.summary}`;
                     btn.onclick = () => {
-                        // This click is still generating a NEW PoC, so enforce the cooldown
+                        // This click is starting a NEW PoC process, so enforce the cooldown
                         if (!isUserEligible(username)) {
-                            // If cooldown is active, the bypass button will be added by isUserEligible's call
-                            addBypassButton(username);
-                            return; 
+                            // If cooldown is active, the bypass button is added by isUserEligible's internal call to addBypassButton
+                            return;
                         }
                         // Save the selected idea context before proceeding
                         localStorage.setItem("selectedIdea", JSON.stringify(idea));
@@ -340,10 +345,10 @@
                 console.error(err);
             }
         }
-        
+
         function generateRepo(idea) {
             const username = localStorage.getItem('currentUser');
-            
+
             if (!username || username === 'guest_user') {
                 alert("Please ensure you are logged in with a unique username.");
                 return;
@@ -353,11 +358,11 @@
             if (!isUserEligible(username)) {
                 // If cooldown is active, show the bypass button and stop the process
                 addBypassButton(username);
-                return; 
+                return;
             }
-            
+
             // --- 2. If Check Passes: Proceed with Generation ---
-            
+
             if (!idea) {
                 // Manual Idea Submission
                 const userIdea = document.getElementById('userIdea').value.trim();
@@ -365,11 +370,10 @@
                     alert("Please enter an idea first!");
                     return;
                 }
-                
+
                 // Set the current idea in Local Storage to allow for correction later
-                // The structure for manual input is simpler, just store the text.
-                localStorage.setItem("selectedIdea", JSON.stringify({ userIdea: userIdea, title: "Manual Idea" })); 
-                
+                localStorage.setItem("selectedIdea", JSON.stringify({ userIdea: userIdea, title: "Manual Idea" }));
+
                 // Redirect: The API call happens on setup.html when the user asks for the guide
                 window.location.href = `setup.html?idea=${encodeURIComponent(userIdea)}&user=${username}`;
 
