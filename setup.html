@@ -207,6 +207,72 @@
         }
         initParticles(); animate();
     </script>
+
+
+<div class="modal fade" id="githubModal" tabindex="-1" aria-labelledby="githubModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content text-bg-dark">
+            <div class="modal-header">
+                <h5 class="modal-title text-warning" id="githubModalLabel">🎉 Project Deployed! Now Upload to GitHub</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Your Drosera Trap project is deployed and configured on your VPS. The final step for review and sharing is to push your local code repository to a GitHub repository.
+                    Follow these steps **from within your project directory** (e.g., <code>cd LiquiditySnapshotTrap</code>).
+                </p>
+
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped table-bordered align-middle">
+                        <thead>
+                            <tr>
+                                <th scope="col">Step</th>
+                                <th scope="col" style="width: 25%;">Action</th>
+                                <th scope="col">Command</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>**1.**</td>
+                                <td>Initialize Git</td>
+                                <td><code>git init</code></td>
+                            </tr>
+                            <tr>
+                                <td>**2.**</td>
+                                <td>Stage All Files</td>
+                                <td><code>git add .</code></td>
+                            </tr>
+                            <tr>
+                                <td>**3.**</td>
+                                <td>Create Commit</td>
+                                <td><code>git commit -m "Initial Drosera Trap deployment"</code></td>
+                            </tr>
+                            <tr>
+                                <td>**4.**</td>
+                                <td>Link Remote</td>
+                                <td><code>git remote add origin [YOUR_GITHUB_REPO_URL]</code></td>
+                            </tr>
+                            <tr>
+                                <td>**5.**</td>
+                                <td>Push Code</td>
+                                <td><code>git push -u origin main</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h6 class="mt-4 text-warning">⚠️ Important Note:</h6>
+                <ul class="small">
+                    <li>**GitHub Token:** If you use two-factor authentication (2FA), you must use a **GitHub Personal Access Token (PAT)** instead of your password during the <code>git push</code>.</li>
+                    <li>**Empty Repo:** Ensure the GitHub repository you link to is **empty** (no `README.md` or `.gitignore` added by GitHub) to avoid merge conflicts on the first push.</li>
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Close & Finish</button>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 
 </html>

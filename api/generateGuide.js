@@ -233,26 +233,44 @@ nano README.md
 
 # {{TrapName}} (Drosera Proof-of-Concept)
 
-A comprehensive guide and code for a Drosera Trap designed to monitor **{{DerivedProjectName}}**.
+## Overview
+// The AI MUST generate a 2-3 sentence, well-written description of what this specific trap monitors and why it's critical.
+{{OverviewProse}} 
+
+---
 
 ## What It Does
-* The AI MUST provide 2-3 concise bullet points describing the specific behavior and conditions this trap monitors.
-* It monitors a specific on-chain condition related to {{DerivedProjectName}}.
+* {{SpecificBehavior1}} // e.g., "Monitors the Uniswap V3 price for DAI/WETH."
+* {{SpecificBehavior2}} // e.g., "Triggers if the price deviates by more than 1% from the last confirmed reading."
 * It demonstrates the essential Drosera trap pattern using deterministic logic.
 
+---
+
 ## Key Files
-* \`src/{{TrapName}}.sol\` - The trap contract.
+* \`src/{{TrapName}}.sol\` - The core trap contract containing the monitoring logic.
 * \`src/SimpleResponder.sol\` - The required external response contract.
-* \`drosera.toml\` - The deployment configuration file.
+* \`drosera.toml\` - The deployment and configuration file.
 
-## How It Works
+---
 
-// The AI MUST insert a concise, syntax-highlighted Solidity code snippet of the \`shouldRespond()\` logic here. 
-// Use an ellipsis (...) for functions not shown.
+## Detection Logic
 
-* **Hardcoded Configuration:** Explain why constants are used and what is being monitored.
-* **Deterministic Logic:** Explain the use of the \`pure\` modifier and how historical data (\`bytes[] calldata data\`) is used.
-* **Response Mechanism:** Explain the role of the external Responder contract.
+The trap's core monitoring logic is contained in the deterministic \`shouldRespond()\` function.
+
+\`\`\`solidity
+// The AI MUST insert the full, syntax-highlighted Solidity code of the \`shouldRespond()\` logic here.
+{{ShouldRespondLogic}} 
+\`\`\`
+
+---
+
+## 🧪 Implementation Details and Key Concepts
+* **Monitoring Target:** // The AI MUST detail the exact addresses or data points being watched (e.g., "Watching the price feed at 0x... and the Dex token 0xFba1bc...").
+* **Deterministic Logic:** Explains the use of the \`view\` or \`pure\` modifier. This logic is always executed off-chain by operators to achieve consensus before a transaction is proposed.
+* **Calculation/Thresholds:** // The AI MUST clearly explain the specific calculation (e.g., "Uses a fixed 5% deviation threshold") that drives the \`shouldRespond()\` function.
+* **Response Mechanism:** On trigger, the trap calls the external Responder contract, demonstrating the separation of monitoring and action.
+
+---
 
 ## Test It
 To verify the trap logic using Foundry, run the following command (assuming a test file has been created):

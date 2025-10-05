@@ -168,22 +168,36 @@ function goToStep(n) {
     }
 }
 
+/**
+ * @name finishWizard
+ * Handles the final step logic: showing the Toast (optional) and displaying the GitHub Modal.
+ */
 function finishWizard() {
-    // 1. Show the Bootstrap Toast notification
+    // Navigate to the final step (Phase 5) to keep the documentation visible
+    // Assumes the guide has a fixed number of phases (e.g., 5 steps)
+    goToStep(guideData.steps.length);
+
+    // 1. Show the Bootstrap Toast notification (Optional, for visual feedback)
     const toastElement = document.getElementById('successToast');
     if (toastElement) {
-        // Ensure Bootstrap JS is loaded before using 'new bootstrap.Toast'
-        if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
+         if (typeof bootstrap !== 'undefined' && bootstrap.Toast) {
             const toast = new bootstrap.Toast(toastElement);
+            // Update the toast message to reflect completion
+            document.getElementById('toast-body-text').innerText = "Congratulations! Deployment guide complete.";
             toast.show();
         } else {
-            console.error("Bootstrap Toast library not found. Is the script tag correct?");
+            console.error("Bootstrap Toast library not found.");
         }
     }
     
-    // 2. Navigate to the final step (Phase 5) to keep the documentation visible
-    // Assumes the guide has 5 steps (indices 0-4)
-    goToStep(5);
+    // 2. CRITICAL: Display the GitHub Modal
+    const githubModalElement = document.getElementById('githubModal');
+    if (githubModalElement && typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        const githubModal = new bootstrap.Modal(githubModalElement);
+        githubModal.show();
+    } else {
+        console.error("Bootstrap Modal library or #githubModal element not found.");
+    }
 }
 
 
@@ -240,7 +254,7 @@ async function askAI() {
              // Assuming the output is markdown/plain text that needs pre-tag rendering
              out.innerHTML = `<pre class="text-white bg-dark p-2 rounded">${data.output || "No detailed output received."}</pre>`;
         }
-       
+        
     } catch (err) {
         out.innerText = "❌ Error contacting Boba: " + err.message;
     }
