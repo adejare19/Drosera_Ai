@@ -42,7 +42,7 @@ async function loadGuide() {
     
     // Display the loading message inside the dedicated container
     if (stepsContainer) {
-        stepsContainer.innerHTML = '<p class="text-warning" id="loading-message">⏳ Generating guide, please wait (up to 30 seconds)...</p>';
+        stepsContainer.innerHTML = '<p class="text-warning" id="loading-message">⏳ Generating guide, please wait (up to 60 seconds)...</p>';
     } else {
         console.error("Critical: #guide-steps-container not found.");
         return;

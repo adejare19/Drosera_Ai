@@ -221,6 +221,6 @@ HARD RULES:
     return res.status(200).json({ ideas });
   } catch (err) {
     console.error("Error generating ideas:", err);
-    return res.status(500).json({ error: "Failed to generate ideas" });
+    return res.status(500).json({ error: "Bjorn ran out of Ideas" });
   }
 }
