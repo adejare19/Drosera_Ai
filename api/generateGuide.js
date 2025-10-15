@@ -174,7 +174,7 @@ min_number_of_operators = 1
 max_number_of_operators = 2
 block_sample_size = 10
 private_trap = true
-whitelist = []
+whitelist = ["YOUR WALLET ADDRESS"]
 
 
 // Code Block for: 'Edit foundry.toml (Remappings/RPC)'
